@@ -1,0 +1,346 @@
+#+TITLE: RUST NOTE
+#+AUTHOR: wfj
+#+EMAIL: wufangjie1223@126.com
+#+OPTIONS: ^:{} \n:t email:t
+#+HTML_HEAD_EXTRA: <style type="text/css"> body {padding-left: 26%; background: #e3edcd;} #table-of-contents {position: fixed; width: 25%; height: 100%; top: 0; left: 0; overflow-y: scroll; resize: horizontal;} i {color: #666666;} pre, pre.src:before {color: #ffffff; background: #131926;} </style>
+#+HTML_HEAD_EXTRA: <script type="text/javascript"> function adjust_html(){document.getElementsByTagName("body")[0].style.cssText="padding-left: "+(parseInt(document.getElementById("table-of-contents").style.width)+5)+"px; background: #e3edcd;"}; window.onload=function (){document.getElementById("table-of-contents").addEventListener("mouseup",adjust_html,true)}</script>
+
+* rules
+** Ownership Rules
++ Each value in Rust has a variable that’s called its owner.
++ There can only be one owner at a time.
++ When the owner goes out of scope, the value will be dropped.
+
+NOTE: temporary value have temporary owner, which will dropped when expression end
+
+** Reference Rules(Borrowing Rules)
++ At any given time, you can have either one mutable reference or any number of immutable references.
++ References must always be valid.
+
+* basic
+** variables and constants
+https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html#differences-between-variables-and-constants
+
+** shadowing
+something like a stack
+#+BEGIN_SRC rust
+let a = 1;
+{
+    let a = a * 2; // ok
+    // let a *= 2; // err
+    dbg!(&a); // 2
+}
+dbg!(&a); // 1
+#+END_SRC
+
+** mutable variable and mutable reference
+#+BEGIN_SRC rust
+let mut lst = vec![1, 2, 3];
+let third = &mut lst[2];
+// NOTE: third is an immutable variable, also a mutable reference of lst[2]
+// NOTE: only mutable variable can have mutable reference, (mut lst)
+*third *= 2;
+dbg!(&third);
+dbg!(&lst[2]);
+#+END_SRC
+
+NOTE: &mut self is syntactic sugar for self: &mut Self
+mut self means let mut this = self (struct update syntax, NOTE: self could be immutable)
+https://users.rust-lang.org/t/what-is-different-between-mut-self-and-mut-self/59708
+
+** None and ()
+#+BEGIN_SRC rust
+dbg!(&None::<i32>); // let none: Option<i32> = None; (:: > &)
+dbg!(&()); // () is unit type, whose only possible value is an empty tuple
+// -> (), Result<(), Box<dyn Error>>, HashMap<T, ()>
+#+END_SRC
+
+** statements and expressions
+only two kinds of statements:
++ let statements
++ item declarations
+
+** comments
++ // Line comments
++ /* */ Block comments
++ //! (docs for enclosing items, top)
++ /// (docs for following items)
+
+#+BEGIN_SRC rust
+let x = 5 + /* 90 + */ 5;
+#+END_SRC
+
+** if expression, labeled loop
+https://doc.rust-lang.org/book/ch03-05-control-flow.html
+
+** .. operator
+#+BEGIN_SRC rust
+dbg!(&(1..4).collect::<Vec<u8>>());
+dbg!(&(1..=4).collect::<Vec<i32>>());
+#+END_SRC
+
+** operator precedence
+https://doc.rust-lang.org/reference/expressions.html
++ :: paths
++ . (method calls, field expressions)
++ () []
++ ?
++ unary (- ! * & &mut) (NOTE: logical and bitwise not are both `!`)
++ as
++ math
++ bitwise
++ comparison
++ logical
++ .. ..=
++ assignment (right to left)
+
+** attribute #[] (inner/outer)
+#+BEGIN_SRC rust
+#![no_std] // inner attribute, must at the beginning of file exclude comments
+#![allow(dead_code)]
+
+#[allow(dead_code)]
+#[derive(Debug)] // outer attributes, annotate the item following them
+// the following items could be structs, enums and unions, for debug output
+// outer means out of the declaration?
+#+END_SRC
+
+** Clone and ToOwned
+NOTE: for blanket impl (they are equivalent)
+https://doc.rust-lang.org/src/alloc/borrow.rs.html#80-92
+
+the difference:
++ Clone works only for going from &T to T.
+  fn clone(&self) -> Self;
++ The ToOwned trait generalizes Clone to construct owned data from any borrow of a given type.
+  fn to_owned(&self) -> Self::Owned;
+
+#+BEGIN_SRC rust
+let a = "hello world!";
+dbgt!(&a.clone()); // &str
+dbgt!(&a.to_owned()); // String
+dbgt!(&String::from(a).as_str());
+dbgt!(&a.to_string());
+#+END_SRC
+
+** common consts
+#+BEGIN_SRC rust
+dbg!(std::f64::consts::PI);
+dbg!(std::f64::consts::E);
+#+END_SRC
+
+** drop
+#+BEGIN_SRC rust
+let a = Rc::new(5);
+Rc::clone(&a); // temporary owner dropped when expression finished
+assert_eq!(1, Rc::strong_count(&a));
+#+END_SRC
+
+** keyword arguments
+rust function and methods have no keyword arguments,
+the name of arguments is not necessary to be the same,
+we can prefix a `_` to omit unused warning for traits default implement
+see ch17_3_1_state_pattern.rs
+
+** method call sugar
+Rust automatically adds in &, &mut, or * so object matches the signature of the *method*
+
+* collections
+** Tuple
+#+BEGIN_SRC rust
+let t: (_, _, _)  = (1, "hello world!", vec![5, 42]); // default or specify
+#+END_SRC
+
+can not be indexed by variable i
+can be used as return values
+one element tuple: (val,)
+
+#+BEGIN_SRC rust
+let too_long_tuple = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
+println!("too long tuple: {:?}", too_long_tuple);
+#+END_SRC
+
+** Array and Slices
+Arrays' type signature: [T; length]
+Slices' type signature: &[T] // always borrow? no ownership
+
++ a slice is a two-word(usize) object, the first word is a pointer to the data, and the second word is the length of the slice.
++ &arr, &vec can deref to slice? see quicksort.rs
++ empty slice: &[], need to specify type
+
+** Vec<T>
+see ch_08_1_vector.rs
+
+** String
+see ch_08_2_string.rs
+
+** HashMap<K, V>
+see ch_08_3_hashmap.rs
+
+* struct
+** 3 types
++ normal struct (classic C structs)
++ tuple struct (anonymous)
++ unit struct (for trait only, ch17_3_1_state_pattern.rs)
+
+** init and update
+two ways of initialize syntax: {}, ()
+update syntax: ..
+
+() as initializer syntax are actually implemented as functions returning an instance that’s constructed from their arguments
+https://doc.rust-lang.org/book/ch19-05-advanced-functions-and-closures.html
+
+** mutable
+NOTE: a mutable struct's fields are always mutable, otherwise immutable, there are no need to specify, but still need `&mut var` to reference a mutable variable
+
+* enum
+store on stack by default
+
+** 4 ways to carry data (vs struct)
+#+BEGIN_SRC rust
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String), // object, or nested enum
+    ChangeColor(i32, i32, i32),
+}
+#+END_SRC
+
+** Option<T>
+Some(T)
+None
+match expression
+
+map()
+take()
+
+** Result<T, E>
+Ok(T)
+Err(E)
+
+** List<T>
++ ch06_enum.rs Cons(T, Box<List<T>>)
++ ch15_4_rc.rs Cons(T, Rc<List<T>>)
++ ch15_5_refcell.rs Cons(RefCell<T>, Rc<List<T>>)
++ ch15_6_ref_cycle.rs Cons(T, RefCell<Rc<List<T>>>),
+
+* project structure
+** package
+#+BEGIN_SRC sh
+cargo new foo # a binary package, (project)
+cd foo
+cargo new bar --lib # a library package
+cargo new zoo # --bin
+#+END_SRC
+the output:
+#+BEGIN_EXAMPLE
+Created binary (application) `foo` package
+Created library `bar` package
+Created binary (application) `zoo` package
+#+END_EXAMPLE
+
+*** workspace
+https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html
+
+** crate
+A package at least has a binary crate or a library crate,
+at most has a library crate
+
+*** binary crate
+the crate root is main.rs, or /src/bin/
+
+*** library crate
+the crate root is lib.rs
+
+** module
++ mod_name.rs
++ mod_name/mod.rs
+
+** keywords
+*** pub
+mod and fn are not pub by default, even though their parent mod is public
+struct: we need to set pub for each field
+enum: only need to set once
+
+*** super(parent), self(current), crate(root)
+about path
+
+*** use (bring a name into scope), pub use (re-exporting)
+nested path: use std::{p1, p2::{p3, p4}};
+
+* match expression
+NOTE: match obj will not move or copy
+NOTE: slice(include array) pattern is valid
+
+the code in match arm can be:
++ an expression with a comma,
++ multiple lines with curly brackets without a comma
+
+if let
+while let
+
+see ch18_match.rs
+
+* traits
+In Rust, the methods of a trait inherit the visibility of the trait itself
+
+parse trait?
+
+| need to impl |
+|--------------|
+| Ord          |
+| Iterator     |
+| Display      |
+
+| for trait bound |
+|-----------------|
+| PartialOrd      |
+| Copy            |
+| Clone           |
+| Debug           |
+| Eq              |
+| Hash            |
+
+** Ord trait and cmp (for sort_by)
+#+BEGIN_SRC rust
+use std::ord::Ordering;
+fn cmp(&self, other: &T) -> Ordering;
+
+enum Ordering{
+    Less,
+    Equal,
+    Greater,
+}
+#+END_SRC
+
+* error handling
+see ch09_err.rs
+
+* testing
+#+BEGIN_SRC rust
+#[test]
+#[ignore] // filter
+#+END_SRC
+
+#+BEGIN_SRC rust
+assert!(expr);
+assert_eq!(lhs, rhs); // will print lhs rhs when failed
+assert_ne!(lhs, rhs); // need same type
+#+END_SRC
+
+use -- --nocapture to show println message
+
+release opt-level:
+#+BEGIN_QUOTE
+Cargo.toml
+[profile.test]
+opt-level = 3
+#+END_QUOTE
+
+* std::mem
+#+BEGIN_SRC rust
+use std::mem::{take, swap, size_of_val, forget}
+// forget takes ownership without running its destructor
+drop // std::mem::drop
+#+END_SRC
+see linkedlist.rs
