@@ -281,6 +281,19 @@ while let
 
 see ch18_match.rs
 
+#+BEGIN_SRC rust
+let mut p = &mut self.head;
+while let Some(node) = p {
+    if node.data == item {
+        self.len -= 1;
+	break;
+    }
+    p = &mut node.next;
+}
+// TODO:FIXME: here, we can not mut borrow p, because p have been mut borrow by node,
+// even though node then drop (out of scope)?
+#+END_SRC
+
 * traits
 In Rust, the methods of a trait inherit the visibility of the trait itself
 

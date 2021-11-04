@@ -3,8 +3,8 @@ use crate::dbgt;
 //use std::rc::{Rc, Weak};
 //use std::cell::RefCell;
 use std::fmt;
-use std::marker::PhantomData;
-use std::ptr; // core::marker::PhantomData;
+use std::marker::PhantomData; // core::marker::PhantomData;
+use std::ptr;
 
 #[derive(Debug)]
 pub struct LinkedList<T> {
@@ -149,14 +149,20 @@ where
         T: PartialEq,
     {
         let mut p = &mut self.head;
+	let mut found = false;
         while let Some(node) = p {
-            if node.data == item {
-                self.len -= 1;
-                // break;
-            }
-            p = &mut node.next;
+	    if let Some(next) = &node.next {
+		if next.data == item {
+		    found = true;
+		}
+	    }
+	    p = &mut node.next;
+	    if found {
+		self.len -= 1;
+		Self::remove_node(p);
+		break;
+	    }
         }
-        Self::remove_node(p);
     }
 
     pub fn from_iter<I>(iter: I) -> Self
@@ -290,13 +296,14 @@ fn test() {
         ll.push_front(v);
     }
     ll.remove_at(2);
-    // ll.remove_item(3);
-    println!("{}", ll);
-    dbg!(ll.contains(&9));
-    dbg!(ll.contains(&5));
-    dbg!(ll.contains(&142));
-    dbg!(ll.contains(&1));
-    dbg!(ll.contains(&42));
+    ll.remove_item(3);
+    ll.remove_item(33);
+    assert_eq!(7, ll.len());
 
-    assert_eq!(8, ll.len());
+    println!("{}", ll);
+    assert!(ll.contains(&9));
+    assert!(!ll.contains(&5));
+    assert!(ll.contains(&142));
+    assert!(!ll.contains(&3));
+    assert!(ll.contains(&42));
 }
