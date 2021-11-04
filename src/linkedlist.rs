@@ -149,19 +149,19 @@ where
         T: PartialEq,
     {
         let mut p = &mut self.head;
-	let mut found = false;
+        let mut found = false;
         while let Some(node) = p {
-	    if let Some(next) = &node.next {
-		if next.data == item {
-		    found = true;
-		}
-	    }
-	    p = &mut node.next;
-	    if found {
-		self.len -= 1;
-		Self::remove_node(p);
-		break;
-	    }
+            if let Some(next) = &node.next {
+                if next.data == item {
+                    found = true;
+                }
+            }
+            p = &mut node.next;
+            if found {
+                self.len -= 1;
+                Self::remove_node(p);
+                break;
+            }
         }
     }
 

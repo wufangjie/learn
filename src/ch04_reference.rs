@@ -56,8 +56,7 @@ fn test() {
     match n {
         &RGB(ref r, ref _g, ref _b) => {
             dbgt!(&r);
-        }
-        // desugar, without ref n will move
+        } // desugar, without ref n will move
     }
 
     // reference access field, String

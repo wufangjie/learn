@@ -3,7 +3,7 @@ fn test() {
     // init push pop
     let n = 3;
     let mut v1 = vec![0; n]; // Vec::new(), Vec::with_capacity(n)
-    // [0; n] is invalid, but vec![0; n] is valid
+                             // [0; n] is invalid, but vec![0; n] is valid
     v1.push(5);
     v1.push(42);
     assert_eq!(Some(42), v1.pop());

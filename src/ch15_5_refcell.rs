@@ -47,7 +47,7 @@ struct Messenger {
 impl Messenger {
     pub fn new() -> Messenger {
         Messenger {
-	    message_store: RefCell::new(Vec::new()),
+            message_store: RefCell::new(Vec::new()),
             //message_store: Cell::new(Vec::new()),
         }
     }
@@ -56,7 +56,7 @@ impl Messenger {
 impl SendMessage for Messenger {
     fn send(&self, msg: String) {
         self.message_store.borrow_mut().push(msg);
-	//self.message_store.get_mut().push(msg);
+        //self.message_store.get_mut().push(msg);
     }
 }
 
