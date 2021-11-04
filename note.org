@@ -290,8 +290,11 @@ while let Some(node) = p {
     }
     p = &mut node.next;
 }
-// TODO:FIXME: here, we can not mut borrow p, because p have been mut borrow by node,
-// even though node then drop (out of scope)?
+// NOTE: here, we can not use p, because of the match ergonomic
+// p has been destruring to node, because of the borrowing rules,
+// we can not use p even after breaking loop
+// but if we use `&mut something_owned` to match,
+// we can still use something_owned after breaking loop
 #+END_SRC
 
 * traits
