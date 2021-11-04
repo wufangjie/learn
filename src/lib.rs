@@ -32,33 +32,33 @@ macro_rules! dbgt {
 #[macro_export]
 macro_rules! timeit {
     ($loops:expr, $code:block) => {
-        let _n = $loops;
-        let _start = std::time::Instant::now();
-        for _ in 0.._n {
+        let timeit_n = $loops;
+        let timeit_start = std::time::Instant::now();
+        for _ in 0..timeit_n {
             $code
         }
-        let _cost = _start.elapsed();
+        let timeit_cost = timeit_start.elapsed();
         println!(
             "[{}:{}] ({} loops, {:?} per loop) {{ ... }}",
             file!(),
             line!(),
-            _n,
-            _cost / _n
+            timeit_n,
+            timeit_cost / timeit_n
         );
     };
     ($loops:expr, $code:expr) => {
-        let _n = $loops;
-        let _start = std::time::Instant::now();
-        for _ in 0.._n {
+        let timeit_n = $loops;
+        let timeit_start = std::time::Instant::now();
+        for _ in 0..timeit_n {
             $code;
         }
-        let _cost = _start.elapsed();
+        let timeit_cost = timeit_start.elapsed();
         println!(
             "[{}:{}] ({} loops, {:?} per loop) {{ {} }}",
             file!(),
             line!(),
-            _n,
-            _cost / _n,
+            timeit_n,
+            timeit_cost / timeit_n,
             stringify!($code)
         );
     };
