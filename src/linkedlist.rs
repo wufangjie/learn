@@ -152,9 +152,9 @@ where
         while let Some(node) = p {
             if let Some(next) = &node.next {
                 if next.data == item {
-		    self.len -= 1;
-		    Self::remove_node(&mut node.next);
-		    break;
+                    self.len -= 1;
+                    Self::remove_node(&mut node.next);
+                    break;
                 }
             }
             p = &mut node.next;
