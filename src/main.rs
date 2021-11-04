@@ -22,7 +22,7 @@ use learn::{dbgt, timeit, utils};
 // mod ch15_4_rc;
 // mod ch15_5_refcell;
 // mod ch15_6_ref_cycle;
-mod ch15_7_cell;
+// mod ch15_7_cell;
 
 // mod linkedlist;
 
@@ -36,14 +36,5 @@ mod ch15_7_cell;
 // mod ch19_4_adv_fn;
 
 // mod recursive;
-// mod learn_async;
 
-fn main() {
-    //  test();
-
-    //#![feature(array_windows)]
-
-    // let slice = [0, 1, 2, 3];
-    // let iter = slice.array_windows::<2>();
-    // dbgt!(&iter);
-}
+fn main() {}
