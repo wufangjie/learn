@@ -27,25 +27,13 @@ macro_rules! dbgt {
     };
 }
 
-// seems no need to support statement
-// put block before expr, block belongs to expr?
+// seems no need to support statement,
+// +put block before expr, block belongs to expr?+
+// recursive macro is ok
+// usage: timeit!(n, code) or timeit!(code) (=== timeit!(1, code))
+// code can be blocks, or just simple expressions
 #[macro_export]
 macro_rules! timeit {
-    ($loops:expr, $code:block) => {
-        let timeit_n = $loops;
-        let timeit_start = std::time::Instant::now();
-        for _ in 0..timeit_n {
-            $code
-        }
-        let timeit_cost = timeit_start.elapsed();
-        println!(
-            "[{}:{}] ({} loops, {:?} per loop) {{ ... }}",
-            file!(),
-            line!(),
-            timeit_n,
-            timeit_cost / timeit_n
-        );
-    };
     ($loops:expr, $code:expr) => {
         let timeit_n = $loops;
         let timeit_start = std::time::Instant::now();
@@ -54,12 +42,18 @@ macro_rules! timeit {
         }
         let timeit_cost = timeit_start.elapsed();
         println!(
-            "[{}:{}] ({} loops, {:?} per loop) {{ {} }}",
+            "[{}:{}] ({} loops, {:?} per loop)\t{{ {} }}",
             file!(),
             line!(),
             timeit_n,
             timeit_cost / timeit_n,
-            stringify!($code)
+	    match stringify!($code) {
+		s if s.contains(";") => "...",
+		s => s,
+	    }
         );
     };
+    ($code:expr) => {
+	timeit!(1, $code);
+    }
 }

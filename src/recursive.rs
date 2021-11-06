@@ -163,8 +163,13 @@ fn test() {
     assert_eq!(fib_iter(80), Fib::new().eval(80));
     assert_eq!(fib_iter(80), fib_logn(80));
 
-    timeit!(10, count_change(1000));
-    timeit!(10, count_change_stack(1000));
+    timeit!(count_change(1000));
+    timeit!({
+	count_change(1000);
+	count_change_stack(1000)
+    });
+    timeit!(count_change_stack(1000));
+
     assert_eq!(count_change(1000), count_change_stack(1000));
 
     let b = -5i64;
