@@ -27,4 +27,23 @@ impl<T> Stack<T> {
         }
         self.data.pop()
     }
+
+    pub fn top(&self) -> Option<T>
+    where
+        T: Copy,
+    {
+        if self.size == 0 {
+            None
+        } else {
+            Some(self.data[self.size - 1])
+        }
+    }
+
+    pub fn peek(&self) -> Option<&T> {
+        if self.size == 0 {
+            None
+        } else {
+            self.data.get(self.size - 1)
+        }
+    }
 }
