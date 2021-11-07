@@ -47,13 +47,13 @@ macro_rules! timeit {
             line!(),
             timeit_n,
             timeit_cost / timeit_n,
-	    match stringify!($code) {
-		s if s.contains(";") => "...",
-		s => s,
-	    }
+            match stringify!($code) {
+                s if s.contains(";") => "...",
+                s => s,
+            }
         );
     };
     ($code:expr) => {
-	timeit!(1, $code);
-    }
+        timeit!(1, $code);
+    };
 }

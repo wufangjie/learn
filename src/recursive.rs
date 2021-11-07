@@ -165,8 +165,8 @@ fn test() {
 
     timeit!(count_change(1000));
     timeit!({
-	count_change(1000);
-	count_change_stack(1000)
+        count_change(1000);
+        count_change_stack(1000);
     });
     timeit!(count_change_stack(1000));
 
