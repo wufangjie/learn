@@ -8,5 +8,10 @@ pub mod stack;
 pub use stack::Stack;
 
 // pub mod linkedlist;
-// pub use linkedlist::LinkedList;
-// pub use linkedlist::Node;
+// pub use linkedlist::{LinkedList, Node};
+
+// pub mod tree;
+// pub use tree::{AVL, AVLNode};
+
+pub mod timer;
+pub use timer::Timer;
