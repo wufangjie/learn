@@ -112,14 +112,14 @@ where
         self.pop_front_node().map(|node| node.data)
     }
 
-    pub fn remove_node(mut p: &mut Option<Box<Node<T>>>) -> Option<T> {
+    pub fn remove_node(p: &mut Option<Box<Node<T>>>) -> Option<T> {
         // FIXME: this is not an associated method, (multiple mut borrow?)
         // so we can not modify self.len here
         let mut temp = None::<Box<Node<T>>>;
-        std::mem::swap(&mut temp, &mut p);
+        std::mem::swap(&mut temp, p);
         if let Some(to_remove) = &mut temp {
             std::mem::swap(p, &mut to_remove.next);
-            if let Some(node) = &mut p {
+            if let Some(node) = p {
                 node.prev = to_remove.prev;
             }
             to_remove.prev = ptr::null_mut(); // need this?
