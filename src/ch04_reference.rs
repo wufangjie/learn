@@ -73,3 +73,17 @@ fn test() {
 
 // NOTE: make reference on match
 // https://doc.rust-lang.org/stable/rust-by-example/flow_control/match/destructuring/destructure_pointers.html
+
+
+#[test]
+#[ignore]
+fn take_reference() {
+    fn test_take(b: &mut String) {
+        println!("taking reference: {}", b);
+    }
+
+    let mut a = String::from("hello");
+    let b = &mut a;
+    test_take(b);
+    println!("b = {} still can use outer!", b);
+}
