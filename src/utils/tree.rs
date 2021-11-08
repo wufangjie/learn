@@ -272,7 +272,7 @@ where
     }
 
     fn update_diff_2r(top: &mut Option<Box<AVLNode<T>>>) -> bool {
-	// actually the top's diff is original grandchild's diff
+        // actually the top's diff is original grandchild's diff
         let (dl, dr) = match top.as_mut().unwrap().diff {
             -1 => (1, 0),
             1 => (0, -1),
@@ -315,28 +315,18 @@ where
 
 impl<T> fmt::Display for AVL<T>
 where
-    T: Ord + fmt::Display,
+    T: Ord + fmt::Display + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "(")?;
         let mut is_first_time = true;
-        let mut queue = Queue::new();
-        if let Some(root) = &self.root {
-            queue.push(root);
-        }
-        while let Some(p) = queue.pop() {
+	for to_print in self.iter_bfs() {
             if is_first_time {
                 is_first_time = false
             } else {
                 write!(f, ", ")?;
             }
-            write!(f, "{}", p.data)?;
-            if let Some(left) = &p.left {
-                queue.push(left);
-            }
-            if let Some(right) = &p.right {
-                queue.push(right);
-            }
+            write!(f, "{}", to_print)?;
         }
         write!(f, ")")
     }
