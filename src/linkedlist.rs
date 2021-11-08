@@ -3,7 +3,7 @@ use crate::dbgt;
 //use std::rc::{Rc, Weak};
 //use std::cell::RefCell;
 use std::fmt;
-use std::marker::PhantomData; // core::marker::PhantomData;
+//use std::marker::PhantomData; // core::marker::PhantomData;
 use std::ptr;
 
 #[derive(Debug)]
@@ -185,13 +185,7 @@ where
     }
 
     pub fn iter(&self) -> Iter<'_, T> {
-        Iter {
-            head: match &self.head {
-                Some(node) => (&**node).as_ptr(),
-                None => ptr::null(),
-            },
-            marker: PhantomData,
-        }
+        Iter { head: &self.head }
     }
 
     pub fn contains(&self, x: &T) -> bool
@@ -243,24 +237,19 @@ impl<T> Node<T> {
 }
 
 pub struct Iter<'a, T> {
-    head: *const Node<T>,
-    marker: PhantomData<&'a Node<T>>, // NOTE: just for lifetime
+    head: &'a Option<Box<Node<T>>>,
+    //marker: PhantomData<&'a Node<T>>, // NOTE: just for lifetime
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.head.is_null() {
-            None
-        } else {
-            unsafe {
-                let ret = Some(&(*self.head).data);
-                self.head = match &(*self.head).next {
-                    Some(node) => (&**node).as_ptr(),
-                    None => ptr::null(),
-                };
-                ret
+        match self.head {
+            None => None,
+            Some(node) => {
+                self.head = &node.next;
+                Some(&node.data)
             }
         }
     }
