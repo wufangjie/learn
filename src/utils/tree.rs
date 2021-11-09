@@ -115,6 +115,25 @@ where
         }
     }
 
+    fn inorder_dfs<'a>(node: &'a Option<Box<AVLNode<T>>>, res: &mut Vec<&'a T>) {
+        // NOTE: only for debug, T: Ord
+        if let Some(node) = node {
+            Self::inorder_dfs(&node.left, res);
+            res.push(&node.data);
+            Self::inorder_dfs(&node.right, res);
+        }
+    }
+
+    fn assert_valid_bst(&self) {
+        // NOTE: only for debug, T: Ord
+        let mut res = vec![];
+        Self::inorder_dfs(&self.root, &mut res);
+        let n = res.len();
+        for i in 1..n {
+            assert!(res[i - 1] <= res[i]);
+        }
+    }
+
     fn rebalance_i(top: &mut Option<Box<AVLNode<T>>>, diff: i8, diff_child: i8) {
         if diff == 1 {
             if diff_child >= 0 {
@@ -320,7 +339,7 @@ where
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "(")?;
         let mut is_first_time = true;
-	for to_print in self.iter_bfs() {
+        for to_print in self.iter_bfs() {
             if is_first_time {
                 is_first_time = false
             } else {
@@ -414,6 +433,9 @@ fn test() {
     // test case from:
     // https://stackoverflow.com/questions/3955680/how-to-check-if-my-avl-tree-implementation-is-correct
 
+    ////////////////////////////////////////////////////////////////////////
+    // insert
+    ////////////////////////////////////////////////////////////////////////
     let mut t1 = AVL::new();
     for i in [20, 4, 26, 3, 9, 15] {
         t1.insert(i);
@@ -452,6 +474,9 @@ fn test() {
     assert!(t4.search_by(|x| 8.cmp(x)));
     assert!(!t4.search_by(|x| 88.cmp(x)));
 
+    ////////////////////////////////////////////////////////////////////////
+    // delete
+    ////////////////////////////////////////////////////////////////////////
     let mut t5 = AVL::new();
     for i in [2, 1, 4, 3, 5] {
         t5.insert(i);
@@ -482,14 +507,9 @@ fn test() {
     // dbgt!(&t7);
     // println!("{}", t7);
 
-    t1.assert_diff();
-    t2.assert_diff();
-    t3.assert_diff();
-    t4.assert_diff();
-    t5.assert_diff();
-    t6.assert_diff();
-    t7.assert_diff();
-
+    ////////////////////////////////////////////////////////////////////////
+    // iter
+    ////////////////////////////////////////////////////////////////////////
     assert_eq!(
         t7.iter_dfs().collect::<Vec<&i32>>(),
         [8, 5, 3, 2, 4, 7, 6, 65, 9, 66, 67]
@@ -502,4 +522,43 @@ fn test() {
             .iter()
             .collect::<Vec<&i32>>()
     );
+
+    ////////////////////////////////////////////////////////////////////////
+    // diff is correct
+    ////////////////////////////////////////////////////////////////////////
+    t1.assert_diff();
+    t2.assert_diff();
+    t3.assert_diff();
+    t4.assert_diff();
+    t5.assert_diff();
+    t6.assert_diff();
+    t7.assert_diff();
+
+    ////////////////////////////////////////////////////////////////////////
+    // is valid bst
+    ////////////////////////////////////////////////////////////////////////
+    // t1.assert_valid_bst();
+    // t2.assert_valid_bst();
+    // t3.assert_valid_bst();
+    // t4.assert_valid_bst();
+    // t5.assert_valid_bst();
+    // t6.assert_valid_bst();
+    // t7.assert_valid_bst();
+
+    let mut t8 = AVL::new();
+    for i in [
+        8, 94, 4, 50, 17, 15, 37, 1, 25, 42, 39, 13, 83, 32, 89, 24, 6, 70, 90, 22, 10, 11, 68, 72,
+        49, 99, 45, 19, 38, 28, 63, 16, 77, 46, 65, 33, 34, 60, 53, 54, 40, 84, 2, 56, 57, 44, 59,
+        92, 95, 41, 98, 97, 80, 29, 87, 18, 26, 67, 79, 88, 30, 20, 35, 81, 78, 55, 12, 43, 85, 82,
+        0, 62, 96, 61, 71, 23, 9, 74, 27, 91, 69, 76, 52, 47, 64, 86, 75, 5, 7, 36, 21, 93, 66, 31,
+        50, 17, 58, 14, 3, 51, 48, 73,  // 50, 17 insert twice
+    ] {
+        t8.insert(i);
+    }
+    t8.assert_valid_bst();
+    for i in [8, 94, 4, 50, 17, 15, 37, 1, 25] {
+        t8.remove(&i);
+        t8.assert_valid_bst();
+    }
+    // println!("{}", t8);
 }
