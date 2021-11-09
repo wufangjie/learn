@@ -74,7 +74,6 @@ fn test() {
 // NOTE: make reference on match
 // https://doc.rust-lang.org/stable/rust-by-example/flow_control/match/destructuring/destructure_pointers.html
 
-
 #[test]
 #[ignore]
 fn take_reference() {
