@@ -84,56 +84,6 @@ where
         height
     }
 
-    fn height2(p: &Option<Box<AVLNode<T>>>) -> isize {
-        // NOTE: only for debug
-        if let Some(node) = p {
-            let hl = Self::height2(&node.left);
-            let hr = Self::height2(&node.right);
-            1 + if hl > hr { hl } else { hr }
-        } else {
-            0
-        }
-    }
-
-    fn assert_diff(&self) {
-        // NOTE: only for debug
-        let mut queue = Queue::new();
-        if let Some(root) = &self.root {
-            queue.push(root);
-        }
-        while let Some(p) = queue.pop() {
-            assert_eq!(
-                p.diff as isize,
-                Self::height2(&p.left) - Self::height2(&p.right)
-            );
-            if let Some(left) = &p.left {
-                queue.push(left);
-            }
-            if let Some(right) = &p.right {
-                queue.push(right);
-            }
-        }
-    }
-
-    fn inorder_dfs<'a>(node: &'a Option<Box<AVLNode<T>>>, res: &mut Vec<&'a T>) {
-        // NOTE: only for debug, T: Ord
-        if let Some(node) = node {
-            Self::inorder_dfs(&node.left, res);
-            res.push(&node.data);
-            Self::inorder_dfs(&node.right, res);
-        }
-    }
-
-    fn assert_valid_bst(&self) {
-        // NOTE: only for debug, T: Ord
-        let mut res = vec![];
-        Self::inorder_dfs(&self.root, &mut res);
-        let n = res.len();
-        for i in 1..n {
-            assert!(res[i - 1] <= res[i]);
-        }
-    }
-
     fn rebalance_i(top: &mut Option<Box<AVLNode<T>>>, diff: i8, diff_child: i8) {
         if diff == 1 {
             if diff_child >= 0 {
@@ -428,137 +378,190 @@ where
     }
 }
 
-#[test]
-fn test() {
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    impl<T> AVL<T>
+    where
+        T: Ord + fmt::Debug,
+    {
+        fn height2(p: &Option<Box<AVLNode<T>>>) -> isize {
+            if let Some(node) = p {
+                let hl = Self::height2(&node.left);
+                let hr = Self::height2(&node.right);
+                1 + if hl > hr { hl } else { hr }
+            } else {
+                0
+            }
+        }
+
+        fn assert_diff(&self) {
+            let mut queue = Queue::new();
+            if let Some(root) = &self.root {
+                queue.push(root);
+            }
+            while let Some(p) = queue.pop() {
+                assert_eq!(
+                    p.diff as isize,
+                    Self::height2(&p.left) - Self::height2(&p.right)
+                );
+                if let Some(left) = &p.left {
+                    queue.push(left);
+                }
+                if let Some(right) = &p.right {
+                    queue.push(right);
+                }
+            }
+        }
+
+        fn inorder_dfs<'a>(node: &'a Option<Box<AVLNode<T>>>, res: &mut Vec<&'a T>) {
+            if let Some(node) = node {
+                Self::inorder_dfs(&node.left, res);
+                res.push(&node.data);
+                Self::inorder_dfs(&node.right, res);
+            }
+        }
+
+        fn assert_valid_bst(&self) {
+            let mut res = vec![];
+            Self::inorder_dfs(&self.root, &mut res);
+            let n = res.len();
+            for i in 1..n {
+                assert!(res[i - 1] <= res[i]);
+            }
+        }
+    }
+
     // test case from:
     // https://stackoverflow.com/questions/3955680/how-to-check-if-my-avl-tree-implementation-is-correct
 
-    ////////////////////////////////////////////////////////////////////////
-    // insert
-    ////////////////////////////////////////////////////////////////////////
-    let mut t1 = AVL::new();
-    for i in [20, 4, 26, 3, 9, 15] {
-        t1.insert(i);
-    }
-    assert_eq!(format!("{}", t1), "(9, 4, 20, 3, 15, 26)");
-    // dbgt!(&t1);
-    // println!("{}", t1);
+    #[test]
+    fn test_insert() {
+        let mut t1 = AVL::new();
+        for i in [20, 4, 26, 3, 9, 15] {
+            t1.insert(i);
+        }
+        assert_eq!(format!("{}", t1), "(9, 4, 20, 3, 15, 26)");
+        // dbgt!(&t1);
+        // println!("{}", t1);
 
-    let mut t2 = AVL::new();
-    for i in [20, 4, 26, 3, 9, 21, 30, 2, 7, 11, 15] {
-        t2.insert(i);
-    }
-    assert_eq!(format!("{}", t2), "(9, 4, 20, 3, 7, 11, 26, 2, 15, 21, 30)");
-    // dbgt!(&t2);
-    // println!("{}", t2);
+        let mut t2 = AVL::new();
+        for i in [20, 4, 26, 3, 9, 21, 30, 2, 7, 11, 15] {
+            t2.insert(i);
+        }
+        assert_eq!(format!("{}", t2), "(9, 4, 20, 3, 7, 11, 26, 2, 15, 21, 30)");
+        // dbgt!(&t2);
+        // println!("{}", t2);
 
-    let mut t3 = AVL::new();
-    for i in [20, 4, 26, 3, 9, 8] {
-        t3.insert(i);
-    }
-    assert_eq!(format!("{}", t3), "(9, 4, 20, 3, 8, 26)");
-    // dbgt!(&t3);
-    // println!("{}", t3);
+        let mut t3 = AVL::new();
+        for i in [20, 4, 26, 3, 9, 8] {
+            t3.insert(i);
+        }
+        assert_eq!(format!("{}", t3), "(9, 4, 20, 3, 8, 26)");
+        // dbgt!(&t3);
+        // println!("{}", t3);
 
-    let mut t4 = AVL::new();
-    for i in [20, 4, 26, 3, 9, 21, 30, 2, 7, 11, 8] {
-        t4.insert(i);
-    }
-    assert_eq!(format!("{}", t4), "(9, 4, 20, 3, 7, 11, 26, 2, 8, 21, 30)");
-    // dbgt!(&t4);
-    // println!("{}", t4);
+        let mut t4 = AVL::new();
+        for i in [20, 4, 26, 3, 9, 21, 30, 2, 7, 11, 8] {
+            t4.insert(i);
+        }
+        assert_eq!(format!("{}", t4), "(9, 4, 20, 3, 7, 11, 26, 2, 8, 21, 30)");
+        // dbgt!(&t4);
+        // println!("{}", t4);
 
-    assert_eq!(4, t4.height());
-    assert!(t4.search(&8));
-    assert!(!t4.search(&88));
-    assert!(t4.search_by(|x| 8.cmp(x)));
-    assert!(!t4.search_by(|x| 88.cmp(x)));
+        assert_eq!(4, t4.height());
+        assert!(t4.search(&8));
+        assert!(!t4.search(&88));
+        assert!(t4.search_by(|x| 8.cmp(x)));
+        assert!(!t4.search_by(|x| 88.cmp(x)));
 
-    ////////////////////////////////////////////////////////////////////////
-    // delete
-    ////////////////////////////////////////////////////////////////////////
-    let mut t5 = AVL::new();
-    for i in [2, 1, 4, 3, 5] {
-        t5.insert(i);
-    }
-    t5.remove(&1);
-    assert_eq!(format!("{}", t5), "(4, 2, 5, 3)");
-    // dbgt!(&t5);
-    // println!("{}", t5);
+        ////////////////////////////////////////////////////////////////////////
+        // delete
+        ////////////////////////////////////////////////////////////////////////
+        let mut t5 = AVL::new();
+        for i in [2, 1, 4, 3, 5] {
+            t5.insert(i);
+        }
+        t5.remove(&1);
+        assert_eq!(format!("{}", t5), "(4, 2, 5, 3)");
+        // dbgt!(&t5);
+        // println!("{}", t5);
 
-    let mut t6 = AVL::new();
-    for i in [6, 2, 9, 1, 4, 8, 66, 3, 5, 7, 65, 67, 68] {
-        t6.insert(i);
-    }
-    t6.remove(&1);
-    assert_eq!(
-        format!("{}", t6),
-        "(6, 4, 9, 2, 5, 8, 66, 3, 7, 65, 67, 68)"
-    );
-    // dbgt!(&t6);
-    // println!("{}", t6);
+        let mut t6 = AVL::new();
+        for i in [6, 2, 9, 1, 4, 8, 66, 3, 5, 7, 65, 67, 68] {
+            t6.insert(i);
+        }
+        t6.remove(&1);
+        assert_eq!(
+            format!("{}", t6),
+            "(6, 4, 9, 2, 5, 8, 66, 3, 7, 65, 67, 68)"
+        );
+        // dbgt!(&t6);
+        // println!("{}", t6);
 
-    let mut t7 = AVL::new();
-    for i in [5, 2, 8, 1, 3, 7, 65, 4, 6, 9, 66, 67] {
-        t7.insert(i);
-    }
-    t7.remove(&1);
-    assert_eq!(format!("{}", t7), "(8, 5, 65, 3, 7, 9, 66, 2, 4, 6, 67)");
-    // dbgt!(&t7);
-    // println!("{}", t7);
+        let mut t7 = AVL::new();
+        for i in [5, 2, 8, 1, 3, 7, 65, 4, 6, 9, 66, 67] {
+            t7.insert(i);
+        }
+        t7.remove(&1);
+        assert_eq!(format!("{}", t7), "(8, 5, 65, 3, 7, 9, 66, 2, 4, 6, 67)");
+        // dbgt!(&t7);
+        // println!("{}", t7);
 
-    ////////////////////////////////////////////////////////////////////////
-    // iter
-    ////////////////////////////////////////////////////////////////////////
-    assert_eq!(
-        t7.iter_dfs().collect::<Vec<&i32>>(),
-        [8, 5, 3, 2, 4, 7, 6, 65, 9, 66, 67]
-            .iter()
-            .collect::<Vec<&i32>>()
-    );
-    assert_eq!(
-        t7.iter_bfs().collect::<Vec<&i32>>(),
-        [8, 5, 65, 3, 7, 9, 66, 2, 4, 6, 67]
-            .iter()
-            .collect::<Vec<&i32>>()
-    );
+        ////////////////////////////////////////////////////////////////////////
+        // iter
+        ////////////////////////////////////////////////////////////////////////
+        assert_eq!(
+            t7.iter_dfs().collect::<Vec<&i32>>(),
+            [8, 5, 3, 2, 4, 7, 6, 65, 9, 66, 67]
+                .iter()
+                .collect::<Vec<&i32>>()
+        );
+        assert_eq!(
+            t7.iter_bfs().collect::<Vec<&i32>>(),
+            [8, 5, 65, 3, 7, 9, 66, 2, 4, 6, 67]
+                .iter()
+                .collect::<Vec<&i32>>()
+        );
 
-    ////////////////////////////////////////////////////////////////////////
-    // diff is correct
-    ////////////////////////////////////////////////////////////////////////
-    t1.assert_diff();
-    t2.assert_diff();
-    t3.assert_diff();
-    t4.assert_diff();
-    t5.assert_diff();
-    t6.assert_diff();
-    t7.assert_diff();
+        ////////////////////////////////////////////////////////////////////////
+        // diff is correct
+        ////////////////////////////////////////////////////////////////////////
+        t1.assert_diff();
+        t2.assert_diff();
+        t3.assert_diff();
+        t4.assert_diff();
+        t5.assert_diff();
+        t6.assert_diff();
+        t7.assert_diff();
 
-    ////////////////////////////////////////////////////////////////////////
-    // is valid bst
-    ////////////////////////////////////////////////////////////////////////
-    // t1.assert_valid_bst();
-    // t2.assert_valid_bst();
-    // t3.assert_valid_bst();
-    // t4.assert_valid_bst();
-    // t5.assert_valid_bst();
-    // t6.assert_valid_bst();
-    // t7.assert_valid_bst();
+        ////////////////////////////////////////////////////////////////////////
+        // is valid bst
+        ////////////////////////////////////////////////////////////////////////
+        // t1.assert_valid_bst();
+        // t2.assert_valid_bst();
+        // t3.assert_valid_bst();
+        // t4.assert_valid_bst();
+        // t5.assert_valid_bst();
+        // t6.assert_valid_bst();
+        // t7.assert_valid_bst();
 
-    let mut t8 = AVL::new();
-    for i in [
-        8, 94, 4, 50, 17, 15, 37, 1, 25, 42, 39, 13, 83, 32, 89, 24, 6, 70, 90, 22, 10, 11, 68, 72,
-        49, 99, 45, 19, 38, 28, 63, 16, 77, 46, 65, 33, 34, 60, 53, 54, 40, 84, 2, 56, 57, 44, 59,
-        92, 95, 41, 98, 97, 80, 29, 87, 18, 26, 67, 79, 88, 30, 20, 35, 81, 78, 55, 12, 43, 85, 82,
-        0, 62, 96, 61, 71, 23, 9, 74, 27, 91, 69, 76, 52, 47, 64, 86, 75, 5, 7, 36, 21, 93, 66, 31,
-        50, 17, 58, 14, 3, 51, 48, 73,  // 50, 17 insert twice
-    ] {
-        t8.insert(i);
-    }
-    t8.assert_valid_bst();
-    for i in [8, 94, 4, 50, 17, 15, 37, 1, 25] {
-        t8.remove(&i);
+        let mut t8 = AVL::new();
+        for i in [
+            8, 94, 4, 50, 17, 15, 37, 1, 25, 42, 39, 13, 83, 32, 89, 24, 6, 70, 90, 22, 10, 11, 68,
+            72, 49, 99, 45, 19, 38, 28, 63, 16, 77, 46, 65, 33, 34, 60, 53, 54, 40, 84, 2, 56, 57,
+            44, 59, 92, 95, 41, 98, 97, 80, 29, 87, 18, 26, 67, 79, 88, 30, 20, 35, 81, 78, 55, 12,
+            43, 85, 82, 0, 62, 96, 61, 71, 23, 9, 74, 27, 91, 69, 76, 52, 47, 64, 86, 75, 5, 7, 36,
+            21, 93, 66, 31, 50, 17, 58, 14, 3, 51, 48, 73, // 50, 17 insert twice
+        ] {
+            t8.insert(i);
+        }
         t8.assert_valid_bst();
+        for i in [8, 94, 4, 50, 17, 15, 37, 1, 25] {
+            t8.remove(&i);
+            t8.assert_valid_bst();
+        }
+        // println!("{}", t8);
     }
-    // println!("{}", t8);
 }
