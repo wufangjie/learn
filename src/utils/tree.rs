@@ -296,10 +296,8 @@ where
         }
     }
 
-    fn next_indent(indent: &str, pre: &str, cur: &str) -> String {
-        let mut s = String::from(indent);
-        s.push_str(if pre != cur { "  " } else { "┃ " });
-        s
+    fn next_indent(indent: &str, pre: &str, not_cur: &str) -> String {
+        String::from(indent) + if pre != not_cur { "  " } else { "┃ " }
     }
 }
 
