@@ -1,4 +1,3 @@
-use crate::dbgt;
 use crate::utils::{Queue, Stack};
 use std::cmp::Ordering;
 use std::fmt;
@@ -280,6 +279,28 @@ where
         }
         IterBfs { queue }
     }
+
+    pub fn pprint(&self) {
+        if let Some(node) = &self.root {
+            Self::pprint_dfs(&**node, "", " ");
+        }
+    }
+
+    fn pprint_dfs(node: &AVLNode<T>, indent: &str, cur: &str) {
+        if let Some(left) = &node.left {
+            Self::pprint_dfs(&**left, &Self::next_indent(indent, cur, "┗"), "┏");
+        }
+        println!("{}{}━{:?}", indent, cur, &node.data);
+        if let Some(right) = &node.right {
+            Self::pprint_dfs(&**right, &Self::next_indent(indent, cur, "┏"), "┗");
+        }
+    }
+
+    fn next_indent(indent: &str, pre: &str, cur: &str) -> String {
+        let mut s = String::from(indent);
+        s.push_str(if pre != cur { "  " } else { "┃ " });
+        s
+    }
 }
 
 impl<T> fmt::Display for AVL<T>
@@ -381,6 +402,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dbgt;
 
     impl<T> AVL<T>
     where
@@ -562,6 +584,8 @@ mod tests {
             t8.remove(&i);
             t8.assert_valid_bst();
         }
+        t8.pprint();
+
         // println!("{}", t8);
     }
 }
