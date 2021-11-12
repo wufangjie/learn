@@ -469,7 +469,7 @@ mod tests {
     // https://stackoverflow.com/questions/3955680/how-to-check-if-my-avl-tree-implementation-is-correct
 
     #[test]
-    fn test_insert() {
+    fn test_avl() {
         let mut t1 = AVL::new();
         for i in [20, 4, 26, 3, 9, 15] {
             t1.insert(i);
