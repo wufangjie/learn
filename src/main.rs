@@ -24,8 +24,6 @@ mod ch15_5_refcell;
 mod ch15_6_ref_cycle;
 mod ch15_7_cell;
 
-mod linkedlist;
-
 mod ch16_concurrency;
 
 mod ch17_2_trait_object;
