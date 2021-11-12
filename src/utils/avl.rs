@@ -1,7 +1,17 @@
-use crate::utils::{Queue, Stack};
+//! A AVL tree is a self-balancing binary search tree.
+//!
+//! version 0.1.1
+//! https://github.com/wufangjie/learn/blob/main/src/utils/avl.rs
+//!
+//! This tree node use diff(balance factor) instead of regular height,
+//! because, in most case, we do not interest in the height of a AVL tree,
+//! and this change will reduce the memory usage (usize -> i8) and backtraces.
+//!
+//! Implemented pprint() for AVL tree Visualization.
+
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::fmt;
-use std::ptr;
 
 #[derive(Debug)]
 pub struct AVL<T: Ord> {
@@ -35,7 +45,7 @@ where
     pub fn insert(&mut self, item: T) {
         let mut p = &mut self.root;
         let mut pre = p as *mut Option<Box<AVLNode<T>>>;
-        let mut stack = Stack::new();
+        let mut stack = vec![];
         while let Some(node) = p {
             if item < node.data {
                 stack.push((pre, 1i8));
@@ -133,8 +143,8 @@ where
         // find node to remove
         let mut p = &mut self.root;
         let mut pre = p as *mut Option<Box<AVLNode<T>>>;
-        let mut stack = Stack::new();
-        let mut to_remove = ptr::null_mut();
+        let mut stack = vec![];
+        let mut to_remove = std::ptr::null_mut();
         while let Some(node) = p {
             match cmp(&node.data) {
                 Ordering::Equal => {
@@ -265,7 +275,7 @@ where
     }
 
     pub fn iter_dfs(&self) -> IterDfs<'_, T> {
-        let mut stack = Stack::new();
+        let mut stack = vec![];
         if let Some(node) = &self.root {
             stack.push(&**node);
         }
@@ -273,9 +283,9 @@ where
     }
 
     pub fn iter_bfs(&self) -> IterBfs<'_, T> {
-        let mut queue = Queue::new();
+        let mut queue = VecDeque::new();
         if let Some(node) = &self.root {
-            queue.push(&**node);
+            queue.push_back(&**node);
         }
         IterBfs { queue }
     }
@@ -283,6 +293,8 @@ where
     pub fn pprint(&self) {
         if let Some(node) = &self.root {
             Self::pprint_dfs(&**node, "", " ");
+        } else {
+            println!(" ()");
         }
     }
 
@@ -343,7 +355,7 @@ where
 }
 
 pub struct IterDfs<'a, T: Ord> {
-    stack: Stack<&'a AVLNode<T>>,
+    stack: Vec<&'a AVLNode<T>>,
 }
 
 impl<'a, T> Iterator for IterDfs<'a, T>
@@ -371,7 +383,7 @@ where
 }
 
 pub struct IterBfs<'a, T: Ord> {
-    queue: Queue<&'a AVLNode<T>>,
+    queue: VecDeque<&'a AVLNode<T>>,
 }
 
 impl<'a, T> Iterator for IterBfs<'a, T>
@@ -381,15 +393,15 @@ where
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.queue.pop() {
+        match self.queue.pop_front() {
             None => None,
             Some(node) => {
                 let ret = &node.data;
                 if let Some(left) = &node.left {
-                    self.queue.push(left);
+                    self.queue.push_back(left);
                 }
                 if let Some(right) = &node.right {
-                    self.queue.push(right);
+                    self.queue.push_back(right);
                 }
                 Some(ret)
             }
@@ -400,7 +412,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dbgt;
+    // use crate::dbgt;
 
     impl<T> AVL<T>
     where
@@ -417,20 +429,20 @@ mod tests {
         }
 
         fn assert_diff(&self) {
-            let mut queue = Queue::new();
+            let mut queue = VecDeque::new();
             if let Some(root) = &self.root {
-                queue.push(root);
+                queue.push_back(root);
             }
-            while let Some(p) = queue.pop() {
+            while let Some(p) = queue.pop_front() {
                 assert_eq!(
                     p.diff as isize,
                     Self::height2(&p.left) - Self::height2(&p.right)
                 );
                 if let Some(left) = &p.left {
-                    queue.push(left);
+                    queue.push_back(left);
                 }
                 if let Some(right) = &p.right {
-                    queue.push(right);
+                    queue.push_back(right);
                 }
             }
         }

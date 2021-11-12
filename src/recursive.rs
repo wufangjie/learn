@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use crate::timeit;
-use crate::utils::Stack;
 
 // closure: no generic, no recursive
 // function: function pointer
@@ -94,7 +93,7 @@ fn count_change_stack(total: i32) -> i32 {
     // NOTE: this version is slower, the overhead of vec?
     // this version will be much faster in release mode
     // use memo to speed up?
-    let mut stack = Stack::new();
+    let mut stack = vec![];
     stack.push((COINS.len() - 1, total));
     let mut res = 0;
     while let Some((i, mut left)) = stack.pop() {

@@ -360,3 +360,6 @@ use std::mem::{take, swap, size_of_val, forget}
 drop // std::mem::drop
 #+END_SRC
 see linkedlist.rs
+
+* rust-compile-optimize
+https://magiclen.org/rust-compile-optimize/
