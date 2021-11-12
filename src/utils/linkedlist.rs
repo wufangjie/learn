@@ -1,23 +1,26 @@
-#![allow(dead_code)]
-use crate::dbgt;
-//use std::rc::{Rc, Weak};
-//use std::cell::RefCell;
+//! A Doubly Linked List implementation.
+//!
+//! version 0.1.0
+//! https://github.com/wufangjie/learn/blob/main/src/utils/linkedlist.rs
+//!
+//! Forward list share the ownership, backward list is just raw pointer
+//! Only used two `unsafe` to save loop time
+
 use std::fmt;
-//use std::marker::PhantomData; // core::marker::PhantomData;
 use std::ptr;
 
 #[derive(Debug)]
 pub struct LinkedList<T> {
-    head: Option<Box<Node<T>>>, // Box own the data they point to
-    tail: *mut Node<T>,
+    head: Option<Box<ListNode<T>>>, // Box own the data they point to
+    tail: *mut ListNode<T>,
     len: usize,
 }
 
 #[derive(Debug)]
-pub struct Node<T> {
+pub struct ListNode<T> {
     data: T,
-    next: Option<Box<Node<T>>>,
-    prev: *mut Node<T>,
+    next: Option<Box<ListNode<T>>>,
+    prev: *mut ListNode<T>,
 }
 
 impl<T> LinkedList<T>
@@ -32,7 +35,7 @@ where
         }
     }
 
-    pub fn push_back_node(&mut self, mut node: Box<Node<T>>) {
+    pub fn push_back_node(&mut self, mut node: Box<ListNode<T>>) {
         let p = (&*node).as_mut_ptr();
         if self.len == 0 {
             self.head = Some(node);
@@ -44,7 +47,7 @@ where
         self.len += 1;
     }
 
-    pub fn push_front_node(&mut self, mut node: Box<Node<T>>) {
+    pub fn push_front_node(&mut self, mut node: Box<ListNode<T>>) {
         if self.len == 0 {
             self.tail = (&*node).as_mut_ptr();
         } else {
@@ -57,8 +60,8 @@ where
         self.len += 1;
     }
 
-    pub fn pop_back_node(&mut self) -> Option<Box<Node<T>>> {
-        let mut ret = None::<Box<Node<T>>>;
+    pub fn pop_back_node(&mut self) -> Option<Box<ListNode<T>>> {
+        let mut ret = None::<Box<ListNode<T>>>;
         if self.len > 0 {
             if self.len == 1 {
                 std::mem::swap(&mut ret, &mut self.head);
@@ -79,8 +82,8 @@ where
         ret
     }
 
-    pub fn pop_front_node(&mut self) -> Option<Box<Node<T>>> {
-        let mut ret = None::<Box<Node<T>>>;
+    pub fn pop_front_node(&mut self) -> Option<Box<ListNode<T>>> {
+        let mut ret = None::<Box<ListNode<T>>>;
         if self.len > 0 {
             std::mem::swap(&mut ret, &mut self.head);
             if let Some(node) = &mut ret {
@@ -97,11 +100,11 @@ where
     }
 
     pub fn push_back(&mut self, v: T) {
-        self.push_back_node(Box::new(Node::new(v))); // do not use box keyword
+        self.push_back_node(Box::new(ListNode::new(v))); // do not use box keyword
     }
 
     pub fn push_front(&mut self, v: T) {
-        self.push_front_node(Box::new(Node::new(v)));
+        self.push_front_node(Box::new(ListNode::new(v)));
     }
 
     pub fn pop_back(&mut self) -> Option<T> {
@@ -112,10 +115,9 @@ where
         self.pop_front_node().map(|node| node.data)
     }
 
-    pub fn remove_node(p: &mut Option<Box<Node<T>>>) -> Option<T> {
-        // FIXME: this is not an associated method, (multiple mut borrow?)
-        // so we can not modify self.len here
-        let mut temp = None::<Box<Node<T>>>;
+    pub fn remove_node(p: &mut Option<Box<ListNode<T>>>) -> Option<T> {
+        // NOTE: this is not a method, so we can not modify self.len here
+        let mut temp = None::<Box<ListNode<T>>>;
         std::mem::swap(&mut temp, p);
         if let Some(to_remove) = &mut temp {
             std::mem::swap(p, &mut to_remove.next);
@@ -217,9 +219,9 @@ where
     }
 }
 
-impl<T> Node<T> {
+impl<T> ListNode<T> {
     pub fn new(item: T) -> Self {
-        Node {
+        ListNode {
             data: item,
             next: None,
             prev: ptr::null_mut(),
@@ -237,8 +239,8 @@ impl<T> Node<T> {
 }
 
 pub struct Iter<'a, T> {
-    head: &'a Option<Box<Node<T>>>,
-    //marker: PhantomData<&'a Node<T>>, // NOTE: just for lifetime
+    head: &'a Option<Box<ListNode<T>>>,
+    //marker: PhantomData<&'a ListNode<T>>, // NOTE: just for lifetime
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -256,8 +258,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 }
 
 #[test]
-//#[ignore]
-fn test() {
+fn test_linkedlist() {
     //let mut ll = LinkedList::from_iter(vec![9, 2, 3, 4, 5, 6].into_iter());
     let mut ll = LinkedList::new();
     for v in [4, 5, 6].into_iter() {

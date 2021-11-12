@@ -1,17 +1,11 @@
 pub mod heap;
 pub use heap::Heap;
 
-pub mod queue;
-pub use queue::Queue;
+pub mod linkedlist;
+pub use linkedlist::{LinkedList, ListNode};
 
-pub mod stack;
-pub use stack::Stack;
-
-// pub mod linkedlist;
-// pub use linkedlist::{LinkedList, Node};
-
-pub mod tree;
-pub use tree::{AVLNode, AVL};
+pub mod avl;
+pub use avl::{AVLNode, AVL};
 
 pub mod timer;
 pub use timer::Timer;
