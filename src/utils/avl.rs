@@ -9,7 +9,7 @@
 //!
 //! Implemented pprint() for AVL tree Visualization.
 //!
-//! insert_by(), remove_by() now return an Option,
+//! search_by(), remove_by() now return an Option,
 //! since using Fn, we may not know the whole data.
 
 use std::cmp::Ordering;
