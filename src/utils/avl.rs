@@ -1,6 +1,6 @@
 //! A AVL tree is a self-balancing binary search tree.
 //!
-//! version 0.1.1
+//! version 0.1.2
 //! https://github.com/wufangjie/learn/blob/main/src/utils/avl.rs
 //!
 //! This tree node use diff(balance factor) instead of regular height,
@@ -8,6 +8,9 @@
 //! and this change will reduce the memory usage (usize -> i8) and backtraces.
 //!
 //! Implemented pprint() for AVL tree Visualization.
+//!
+//! insert_by(), remove_by() now return an Option,
+//! since using Fn, we may not know the whole data.
 
 use std::cmp::Ordering;
 use std::collections::VecDeque;
@@ -27,22 +30,26 @@ where
     }
 
     pub fn search(&self, item: &T) -> bool {
-        self.search_by(|x| item.cmp(x))
+        match self.search_by(|x| item.cmp(x)) {
+            Some(_) => true,
+            None => false,
+        }
     }
 
-    pub fn search_by(&self, cmp: impl Fn(&T) -> Ordering) -> bool {
+    pub fn search_by(&self, cmp: impl Fn(&T) -> Ordering) -> Option<&T> {
         let mut p = &self.root;
         while let Some(node) = p {
             match cmp(&node.data) {
-                Ordering::Equal => return true,
+                Ordering::Equal => return Some(&node.data),
                 Ordering::Greater => p = &node.right,
                 Ordering::Less => p = &node.left,
             }
         }
-        false
+        None
     }
 
     pub fn insert(&mut self, item: T) {
+        // insert_by is no need and dangerous
         let mut p = &mut self.root;
         let mut pre = p as *mut Option<Box<AVLNode<T>>>;
         let mut stack = vec![];
@@ -93,6 +100,114 @@ where
         height
     }
 
+    pub fn remove(&mut self, item: &T) {
+        self.remove_by(|x| item.cmp(x));
+    }
+
+    pub fn remove_by(&mut self, cmp: impl Fn(&T) -> Ordering) -> Option<T> {
+        // find node to remove
+        let mut p = &mut self.root;
+        let mut pre = p as *mut Option<Box<AVLNode<T>>>;
+        let mut stack = vec![];
+        let mut to_remove = std::ptr::null_mut();
+        while let Some(node) = p {
+            match cmp(&node.data) {
+                Ordering::Equal => {
+                    to_remove = pre;
+                    match node.left {
+                        None => {
+                            stack.push((pre, -1i8));
+                            p = &mut node.right;
+                        }
+                        Some(_) => {
+                            stack.push((pre, 1i8));
+                            p = &mut node.left;
+                        }
+                    }
+                    pre = p as *mut Option<Box<AVLNode<T>>>;
+                    break;
+                }
+                Ordering::Greater => {
+                    stack.push((pre, -1i8));
+                    p = &mut node.right;
+                }
+                Ordering::Less => {
+                    stack.push((pre, 1i8));
+                    p = &mut node.left;
+                }
+            }
+            pre = p as *mut Option<Box<AVLNode<T>>>;
+        }
+        if to_remove.is_null() {
+            return None;
+        }
+
+        // swap and remove
+        while let Some(node) = p {
+            stack.push((pre, -1i8));
+            p = &mut node.right;
+            pre = p as *mut Option<Box<AVLNode<T>>>;
+        }
+        let (p, _) = stack.pop().unwrap();
+        let lr = unsafe { &mut *p };
+        let mut ret = None::<Box<AVLNode<T>>>;
+        if p == to_remove {
+            std::mem::swap(lr, &mut ret);
+        } else {
+            let to_remove = unsafe { &mut *to_remove };
+            std::mem::swap(
+                &mut to_remove.as_mut().unwrap().data,
+                &mut lr.as_mut().unwrap().data,
+            );
+            let lrl = lr.as_mut().unwrap().left.take();
+            ret = std::mem::replace(lr, lrl);
+        }
+
+        // backtrace
+        while let Some((pre, flag)) = stack.pop() {
+            let top = unsafe { &mut *pre };
+            let node = &mut top.as_mut().unwrap();
+            if node.diff == 0 {
+                node.diff = -flag;
+                break;
+            } else {
+                if flag * node.diff < 0 {
+                    let diff = node.diff;
+                    if Self::rebalance_r(top, diff) {
+                        break;
+                    }
+                } else {
+                    node.diff = 0;
+                }
+            }
+        }
+        ret.map(|node| node.data)
+    }
+
+    pub fn iter_dfs(&self) -> IterDfs<'_, T> {
+        let mut stack = vec![];
+        if let Some(node) = &self.root {
+            stack.push(&**node);
+        }
+        IterDfs { stack }
+    }
+
+    pub fn iter_bfs(&self) -> IterBfs<'_, T> {
+        let mut queue = VecDeque::new();
+        if let Some(node) = &self.root {
+            queue.push_back(&**node);
+        }
+        IterBfs { queue }
+    }
+
+    pub fn pprint(&self) {
+        if let Some(node) = &self.root {
+            node.pprint_dfs("", " ");
+        } else {
+            println!(" ()");
+        }
+    }
+
     fn rebalance_i(top: &mut Option<Box<AVLNode<T>>>, diff: i8, diff_child: i8) {
         if diff == 1 {
             if diff_child >= 0 {
@@ -133,88 +248,6 @@ where
         std::mem::replace(&mut top.as_mut().unwrap().right, rl);
         std::mem::swap(&mut right, top);
         std::mem::replace(&mut top.as_mut().unwrap().left, right);
-    }
-
-    pub fn remove(&mut self, item: &T) {
-        self.remove_by(|x| item.cmp(x));
-    }
-
-    pub fn remove_by(&mut self, cmp: impl Fn(&T) -> Ordering) {
-        // find node to remove
-        let mut p = &mut self.root;
-        let mut pre = p as *mut Option<Box<AVLNode<T>>>;
-        let mut stack = vec![];
-        let mut to_remove = std::ptr::null_mut();
-        while let Some(node) = p {
-            match cmp(&node.data) {
-                Ordering::Equal => {
-                    to_remove = pre;
-                    match node.left {
-                        None => {
-                            stack.push((pre, -1i8));
-                            p = &mut node.right;
-                        }
-                        Some(_) => {
-                            stack.push((pre, 1i8));
-                            p = &mut node.left;
-                        }
-                    }
-                    pre = p as *mut Option<Box<AVLNode<T>>>;
-                    break;
-                }
-                Ordering::Greater => {
-                    stack.push((pre, -1i8));
-                    p = &mut node.right;
-                }
-                Ordering::Less => {
-                    stack.push((pre, 1i8));
-                    p = &mut node.left;
-                }
-            }
-            pre = p as *mut Option<Box<AVLNode<T>>>;
-        }
-        if to_remove.is_null() {
-            return;
-        }
-
-        // swap and remove
-        while let Some(node) = p {
-            stack.push((pre, -1i8));
-            p = &mut node.right;
-            pre = p as *mut Option<Box<AVLNode<T>>>;
-        }
-        let (p, _) = stack.pop().unwrap();
-        let lr = unsafe { &mut *p };
-        if p == to_remove {
-            let _ = std::mem::replace(lr, None::<Box<AVLNode<T>>>);
-        } else {
-            let to_remove = unsafe { &mut *to_remove };
-            std::mem::swap(
-                &mut to_remove.as_mut().unwrap().data,
-                &mut lr.as_mut().unwrap().data,
-            );
-            let lrl = lr.as_mut().unwrap().left.take();
-            let _ = std::mem::replace(lr, lrl);
-        }
-
-        // backtrace
-        while let Some((pre, flag)) = stack.pop() {
-            let top = unsafe { &mut *pre };
-            let node = &mut top.as_mut().unwrap();
-            if node.diff == 0 {
-                node.diff = -flag;
-                break;
-            } else {
-                if flag * node.diff < 0 {
-                    let diff = node.diff;
-                    if Self::rebalance_r(top, diff) {
-                        break;
-                    }
-                } else {
-                    node.diff = 0;
-                }
-            }
-        }
     }
 
     fn rebalance_r(top: &mut Option<Box<AVLNode<T>>>, diff: i8) -> bool {
@@ -273,44 +306,6 @@ where
             false
         }
     }
-
-    pub fn iter_dfs(&self) -> IterDfs<'_, T> {
-        let mut stack = vec![];
-        if let Some(node) = &self.root {
-            stack.push(&**node);
-        }
-        IterDfs { stack }
-    }
-
-    pub fn iter_bfs(&self) -> IterBfs<'_, T> {
-        let mut queue = VecDeque::new();
-        if let Some(node) = &self.root {
-            queue.push_back(&**node);
-        }
-        IterBfs { queue }
-    }
-
-    pub fn pprint(&self) {
-        if let Some(node) = &self.root {
-            Self::pprint_dfs(&**node, "", " ");
-        } else {
-            println!(" ()");
-        }
-    }
-
-    fn pprint_dfs(node: &AVLNode<T>, indent: &str, cur: &str) {
-        if let Some(left) = &node.left {
-            Self::pprint_dfs(&**left, &Self::next_indent(indent, cur, "┗"), "┏");
-        }
-        println!("{}{}━{:?}", indent, cur, &node.data);
-        if let Some(right) = &node.right {
-            Self::pprint_dfs(&**right, &Self::next_indent(indent, cur, "┏"), "┗");
-        }
-    }
-
-    fn next_indent(indent: &str, pre: &str, not_cur: &str) -> String {
-        String::from(indent) + if pre != not_cur { "  " } else { "┃ " }
-    }
 }
 
 impl<T> fmt::Display for AVL<T>
@@ -351,6 +346,25 @@ where
             right: None,
             diff: 0,
         }
+    }
+}
+
+impl<T> AVLNode<T>
+where
+    T: Ord + fmt::Debug,
+{
+    fn pprint_dfs(&self, indent: &str, cur: &str) {
+        if let Some(left) = &self.left {
+            left.pprint_dfs(&Self::next_indent(indent, cur, "┗"), "┏");
+        }
+        println!("{}{}━{:?}", indent, cur, &self.data);
+        if let Some(right) = &self.right {
+            right.pprint_dfs(&Self::next_indent(indent, cur, "┏"), "┗");
+        }
+    }
+
+    fn next_indent(indent: &str, pre: &str, not_cur: &str) -> String {
+        String::from(indent) + if pre != not_cur { "  " } else { "┃ " }
     }
 }
 
@@ -412,7 +426,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    // use crate::dbgt;
+    use crate::dbgt;
 
     impl<T> AVL<T>
     where
@@ -505,8 +519,8 @@ mod tests {
         assert_eq!(4, t4.height());
         assert!(t4.search(&8));
         assert!(!t4.search(&88));
-        assert!(t4.search_by(|x| 8.cmp(x)));
-        assert!(!t4.search_by(|x| 88.cmp(x)));
+        assert_eq!(Some(&8), t4.search_by(|x| 8.cmp(x)));
+        assert_eq!(None, t4.search_by(|x| 88.cmp(x)));
 
         ////////////////////////////////////////////////////////////////////////
         // delete
@@ -515,7 +529,7 @@ mod tests {
         for i in [2, 1, 4, 3, 5] {
             t5.insert(i);
         }
-        t5.remove(&1);
+        assert_eq!(Some(1), t5.remove_by(|x| 1.cmp(x)));
         assert_eq!(format!("{}", t5), "(4, 2, 5, 3)");
         // dbgt!(&t5);
         // println!("{}", t5);
@@ -594,8 +608,24 @@ mod tests {
             t8.remove(&i);
             t8.assert_valid_bst();
         }
-        t8.pprint();
+        // t8.pprint();
 
-        // println!("{}", t8);
+        let mut t9 = AVL::new();
+        for i in [
+            (4, 5),
+            (4, 2),
+            (0, 8),
+            (1, 1),
+            (1, 3),
+            (2, 7),
+            (2, 4),
+            (3, 6),
+            (3, 9),
+        ] {
+            t9.insert(i);
+        }
+        t9.pprint();
+        assert_eq!(Some((4, 2)), t9.remove_by(|x| 4.cmp(&x.0)));
+        t9.pprint();
     }
 }
