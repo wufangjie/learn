@@ -329,6 +329,39 @@ enum Ordering{
 }
 #+END_SRC
 
+** AsRef trait
+#+BEGIN_SRC rust
+pub trait AsRef<T: ?Sized> {
+    /// Performs the conversion.
+    #[stable(feature = "rust1", since = "1.0.0")]
+    fn as_ref(&self) -> &T;
+}
+#+END_SRC
+#+BEGIN_SRC rust
+use std::fs::File;
+use std::io;
+use std::io::Read;
+use std::path::Path;
+
+pub fn get_file_content<P: AsRef<Path>>(file_path: P) -> Result<String, io::Error> {
+    let mut file = File::open(file_path)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+    Ok(content)
+}
+#+END_SRC
+#+BEGIN_SRC rust
+fn test_as_ref<T: AsRef<str> + std::fmt::Debug>(s: T) {
+    dbgt!(&s.as_ref());
+}
+
+#[test]
+fn test() {
+    test_as_ref("hello");
+    test_as_ref(String::from("hello"));
+}
+#+END_SRC
+
 * error handling
 see ch09_err.rs
 
