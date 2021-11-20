@@ -1,15 +1,12 @@
 #[derive(Debug)]
-pub struct Heap<T>
-where
-    T: PartialOrd + Clone + Copy,
-{
+pub struct Heap<T: PartialOrd> {
     size: usize,
     data: Vec<T>,
 }
 
 impl<T> Heap<T>
 where
-    T: PartialOrd + Clone + Copy,
+    T: PartialOrd,
 {
     pub fn new() -> Heap<T> {
         Heap {
@@ -26,36 +23,28 @@ where
         if self.size == 0 {
             None
         } else {
-            let ret = self.data[0];
+	    let ret = self.data.swap_remove(0);
             self.size -= 1;
             if self.size > 0 {
-                self.data[0] = self.data[self.size];
                 self.heapify_downward(0);
             }
-            self.data.pop();
             Some(ret)
         }
-    }
-
-    fn exchange(&mut self, i: usize, j: usize) {
-        let temp = self.data[i];
-        self.data[i] = self.data[j];
-        self.data[j] = temp;
     }
 
     fn heapify_downward(&mut self, i: usize) {
         let j = (i + 1) << 1;
         if j < self.size && self.data[i] > self.data[j] {
             if self.data[j - 1] < self.data[j] {
-                self.exchange(i, j - 1);
+                self.data.swap(i, j - 1);
                 self.heapify_downward(j - 1);
             } else {
-                self.exchange(i, j);
+                self.data.swap(i, j);
                 self.heapify_downward(j);
             }
         }
         if j - 1 < self.size && self.data[i] > self.data[j - 1] {
-            self.exchange(i, j - 1);
+            self.data.swap(i, j - 1);
             self.heapify_downward(j - 1);
         }
     }
@@ -76,7 +65,7 @@ where
             (i >> 1) - 1
         };
         if self.data[i] < self.data[j] {
-            self.exchange(i, j);
+            self.data.swap(i, j);
             self.heapify_upward(j);
         }
     }
