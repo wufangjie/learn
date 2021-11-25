@@ -1,3 +1,5 @@
+// TODO: compare with std::collections::BinaryHeap
+
 #[derive(Debug)]
 pub struct Heap<T: PartialOrd> {
     size: usize,
