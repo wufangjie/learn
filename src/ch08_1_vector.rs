@@ -1,5 +1,7 @@
+use crate::dbgt;
+
 #[test]
-fn test() {
+fn test_vec() {
     // init push pop
     let n = 3;
     let mut v1 = vec![0; n]; // Vec::new(), Vec::with_capacity(n)
@@ -43,4 +45,32 @@ fn test() {
     assert_eq!(10, x.capacity());
     assert_eq!(3, x.swap_remove(2));
     assert_eq!(vec![0, 1, 10, 4, 5, 6, 7, 8, 9], x);
+}
+
+
+#[test]
+fn test_extend() {
+    // let mut a = vec![String::from("1"), String::from("2")];
+    // let b = vec![String::from("3"), String::from("4")];
+    // let c = vec![String::from("5"), String::from("6")];
+    // let d = vec![String::from("7"), String::from("8")];
+    // let e = vec![String::from("9"), String::from("0")];
+
+    let mut a = vec![1, 2];
+    let b = vec![3, 4];
+    let c = vec![5, 6];
+    let d = vec![7, 8];
+    let e = vec![9, 0];
+
+    a.extend(b); // IntoIterator<Item = T>
+    dbgt!(&a);
+    a.extend(&c); // Vec<T> where T: Copy
+    dbgt!(&a);
+    a.extend(d.into_iter()); // IntoIterator<Item = T>
+    dbgt!(&a);
+    a.extend(e.iter()); // Vec<T> where T: Copy
+    dbgt!(&a);
+
+    // implement Extend trait twice, see:
+    // https://doc.rust-lang.org/src/alloc/vec/mod.rs.html#2556
 }
