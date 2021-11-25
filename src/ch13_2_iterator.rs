@@ -6,7 +6,9 @@ use crate::dbgt;
 // skip skip_while take take_while
 // chain step_by
 // reduce fold
-// sum product any all
+// sum product any all count
+// chunks(n) <= n
+// flat_map
 
 // T: Iterator<Item = i32>
 
@@ -19,13 +21,13 @@ use crate::dbgt;
 // }
 
 #[test]
-fn test() {
+fn test_iterator() {
     let a = vec![1, 2, 3, 4];
 
     assert_eq!(24, a.iter().product());
     assert_eq!(
         vec![&3, &4],
-        a.iter().skip_while(|x| x < &&3).collect::<Vec<&i32>>()
+        a.iter().skip_while(|&&x| x < 3).collect::<Vec<&i32>>()
     );
     // NOTE: &&3, skip_while take a reference of the iterator
     assert_eq!(
