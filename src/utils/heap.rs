@@ -25,7 +25,7 @@ where
         if self.size == 0 {
             None
         } else {
-	    let ret = self.data.swap_remove(0);
+            let ret = self.data.swap_remove(0);
             self.size -= 1;
             if self.size > 0 {
                 self.heapify_downward(0);

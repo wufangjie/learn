@@ -1,5 +1,5 @@
 use rand::Rng;
-//mod timeit;
+use utils::timeit;
 
 const AAA: [[i32; 5]; 2] = [[5, 9, 3, 8, 7], [4, 1, 6, 2, 0]];
 
@@ -19,8 +19,8 @@ fn main() {
     dbg!(arr);
     dbg!(AAA[0]);
 
-    // timeit!(10, {
-    //     let mut arr = [0; 10000];
-    //     rand::thread_rng().fill(&mut arr[..]);
-    // });
+    timeit!(10, {
+        let mut arr = [0; 10000];
+        rand::thread_rng().fill(&mut arr[..]);
+    });
 }

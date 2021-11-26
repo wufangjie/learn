@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use learn::{dbgt, timeit, utils};
+use utils::dbgt;
 
 mod ch04_reference;
 mod ch06_enum;

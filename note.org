@@ -396,3 +396,14 @@ see linkedlist.rs
 
 * rust-compile-optimize
 https://magiclen.org/rust-compile-optimize/
+* local dependencies
+Cargo.toml
+#+BEGIN_SRC conf
+[dependencies]
+utils = { path = "utils", version = "0.1.0"}
+#+END_SRC
+
+If you only want to keep one copy of codes
+#+BEGIN_SRC sh
+ln -s <real folder> <link folder>
+#+END_SRC
