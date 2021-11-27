@@ -407,3 +407,27 @@ If you only want to keep one copy of codes
 #+BEGIN_SRC sh
 ln -s <real folder> <link folder>
 #+END_SRC
+* time profile
+https://www.youtube.com/watch?v=BxSEhr2MggY
+
+update Cargo.toml to get debug info perf need
+#+BEGIN_SRC conf
+[profile.release]
+debug = true
+#+END_SRC
+
+#+BEGIN_SRC sh
+cargo build --release
+perf record cargo run --release
+perf report
+perf stat
+#+END_SRC
+
+install by perf's hint
+#+BEGIN_SRC sh
+linux-tools-generic
+linux-tools-5.11.0-40-generic
+#+END_SRC
+
+/proc/sys/kernel/perf_event_paranoid
+change 4 -> -1
