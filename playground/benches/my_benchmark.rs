@@ -18,6 +18,7 @@ fn gen_arr() -> [i32; N] {
     unsafe { ARR }
 }
 
+#[inline(always)] // useless
 fn reverse_by_c() {
     let mut arr = gen_arr();
     unsafe {
@@ -25,11 +26,13 @@ fn reverse_by_c() {
     }
 }
 
+#[inline(always)] // useless
 fn reverse_by_rust() {
     let mut arr = gen_arr();
     arr.reverse();
 }
 
+#[inline(always)] // useless
 fn reverse_unsafe_1() {
     let mut arr = gen_arr();
     let n = arr.len();
@@ -40,6 +43,7 @@ fn reverse_unsafe_1() {
     }
 }
 
+#[inline(always)] // useless
 fn reverse_unsafe_2() {
     let mut arr = gen_arr();
     let n = arr.len() as isize;
@@ -48,6 +52,16 @@ fn reverse_unsafe_2() {
         unsafe {
             std::ptr::swap(ptr.offset(i), ptr.offset(n - 1 - i));
         }
+    }
+}
+
+#[inline(always)] // need this to keep stable
+fn reverse_iter() {
+    let mut arr = gen_arr();
+    let n = arr.len();
+    let (ph, pt) = arr.split_at_mut(n >> 1);
+    for (x, y) in ph.iter_mut().zip(pt.iter_mut().rev()) {
+        std::mem::swap(x, y);
     }
 }
 
@@ -75,12 +89,18 @@ pub fn criterion_benchmark_unsafe_2(c: &mut Criterion) {
     c.bench_function("unsafe_2", |b| b.iter(|| reverse_unsafe_2()));
 }
 
+pub fn criterion_benchmark_iter(c: &mut Criterion) {
+    c.bench_function("unsafe_iter", |b| b.iter(|| reverse_iter()));
+}
+
+
 criterion_group!(
     benches,
     //criterion_benchmark_change_arr,
     criterion_benchmark_c,
-    criterion_benchmark_rust,
-    criterion_benchmark_unsafe_1,
-    criterion_benchmark_unsafe_2,
+    // criterion_benchmark_rust,
+    // criterion_benchmark_unsafe_1,
+    // criterion_benchmark_unsafe_2,
+    criterion_benchmark_iter, // need _rust, unsafe_1 to be fast
 );
 criterion_main!(benches);
