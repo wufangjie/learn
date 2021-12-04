@@ -362,6 +362,22 @@ fn test() {
 }
 #+END_SRC
 
+** Clone trait
+#+BEGIN_SRC rust
+fn clone(&self) -> Self
+#+END_SRC
+
+*** primitive
+#+BEGIN_SRC rust
+*self
+#+END_SRC
+
+** special traits (in std::marker, no method)
+Copy
+Sized
+Send (auto)
+Sync (auto)
+
 * error handling
 see ch09_err.rs
 
