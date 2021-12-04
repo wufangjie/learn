@@ -27,7 +27,7 @@ where
 
     pub fn value(&mut self, num: K) -> V {
         match self.value.get(&num) {
-            Some(v) => (*v).clone(),
+            Some(v) => v.clone(),
             None => {
                 let v = (self.calculation)(num.clone());
                 self.value.insert(num, v.clone());
@@ -38,7 +38,7 @@ where
 }
 
 #[test]
-fn test() {
+fn test_cacher() {
     let some_closure = |num| {
         println!("calculaing ...");
         thread::sleep(Duration::from_secs(2));
