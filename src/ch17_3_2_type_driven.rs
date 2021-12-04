@@ -1,4 +1,4 @@
-use learn::dbgt;
+use crate::dbgt;
 
 struct Post {
     content: String,

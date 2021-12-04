@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::timeit;
+use utils::timeit;
 
 // closure: no generic, no recursive
 // function: function pointer
