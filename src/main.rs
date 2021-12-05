@@ -35,4 +35,6 @@ mod ch19_4_adv_fn;
 
 mod recursive;
 
+mod calculator;
+
 fn main() {}
