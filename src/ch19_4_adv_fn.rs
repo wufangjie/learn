@@ -29,6 +29,8 @@ fn test() {
 // how return a closure
 
 fn returns_closure_impl() -> impl Fn(i32) -> i32 {
+    // NOTE: the impl keyword is sugar for:
+    // returns_closure_impl<T: Fn(i32) -> i32>() -> T
     |x| x + 1
 }
 
