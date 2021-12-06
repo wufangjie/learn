@@ -13,15 +13,12 @@ fn calc_expr(line: String) -> f64 {
     let mut stack_op = vec!['('];
     let mut stack_num = vec![];
     let mut s = String::new();
-    let mut pre_c = '('; // only for - (unary)
-    for c in line.chars() {
+    let mut pre_c = '('; // only for - (unary) and (nothing).digit
+    for c in line.chars().chain([')'].into_iter()) {
         match c {
-            '(' => {
-                stack_op.push('(');
-            }
-            '0'..='9' | '.' => {
-                s.push(c);
-            }
+            '(' => stack_op.push('('),
+            '0'..='9' => s.push(c),
+            '.' => s.push_str(if let '0'..='9' = pre_c { "." } else { "0." }),
             _ => {
                 if s != "" {
                     stack_num.push(s.parse().unwrap());
@@ -52,12 +49,6 @@ fn calc_expr(line: String) -> f64 {
             pre_c = c;
         }
     }
-    if s != "" {
-        stack_num.push(s.parse().unwrap());
-    }
-    for _ in 1..stack_op.len() {
-        calc_binary(&mut stack_num, &mut stack_op);
-    }
     stack_num[0]
 }
 
@@ -82,10 +73,10 @@ fn test_18_2() {
     assert_eq!(74f64, calc_expr("5 + (8 * 3 + 9 + 3 * 4 * 3)".to_owned()));
     assert_eq!(
         47604f64,
-        (100f64 * calc_expr("5 - 9.2 * (-7.1 * 3 * 3 + 0.9 * 3 + (8 + 6 % 4))".to_owned())).ceil()
+        (100. * calc_expr("5 - 9.2 * (-7.1 * 3 * 3 + 0.9 * 3 + (8 + 6 % 4))".to_owned())).ceil()
     );
     assert_eq!(
-        3208f64,
-        calc_expr("((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2".to_owned())
+        10184f64,
+        (100. * calc_expr("((.2 + 4 * 9) * (6 + 9 * .8 + 6) / 6) + 2 - 4 ^ 2".to_owned())).floor()
     );
 }
