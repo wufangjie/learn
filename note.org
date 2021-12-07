@@ -160,22 +160,66 @@ let too_long_tuple = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
 println!("too long tuple: {:?}", too_long_tuple);
 #+END_SRC
 
-** Array and Slices
+** Array and Vec<T>
 Arrays' type signature: [T; length]
-Slices' type signature: &[T] // always borrow? no ownership
-
-+ a slice is a two-word(usize) object, the first word is a pointer to the data, and the second word is the length of the slice.
-+ &arr, &vec can deref to slice? see quicksort.rs
-+ empty slice: &[], need to specify type
-
-** Vec<T>
-see ch_08_1_vector.rs
+Vec<T> see ch_08_1_vector.rs
 
 ** String
 see ch_08_2_string.rs
 
 ** HashMap<K, V>
 see ch_08_3_hashmap.rs
+
+* slice type
+https://doc.rust-lang.org/std/primitive.slice.html
+
+read ch19.3
+
+** basic
++ Slices are a view into a block of memory represented as a pointer and a length
++ The shared slice type is &[T], while the mutable slice type is &mut [T]
++ As slices store the length of the sequence they refer to, they have twice the size of pointers to Sized types
+#+BEGIN_SRC rust
+let pointer_size = std::mem::size_of::<&u8>();
+assert_eq!(2 * pointer_size, std::mem::size_of::<&[u8]>());
+assert_eq!(2 * pointer_size, std::mem::size_of::<*const [u8]>());
+assert_eq!(2 * pointer_size, std::mem::size_of::<Box<[u8]>>());
+assert_eq!(2 * pointer_size, std::mem::size_of::<Rc<[u8]>>());
+#+END_SRC
+
+NOTE:
++ Slice do not have ownership
++ empty slice: &[], need to specify type
+
+** [T] and &[T]
+https://stackoverflow.com/questions/57808948/confusion-between-t-and-t
+
+str([T]) is DST (19.4), while &str(&[T]) is sized.
+
+** traits
+| SliceIndex | get(), index()([i]) |
+| Concat     | different output    |
+| Join       | different output    |
+
+** useful methods
+| binary_search[_by[_key]]   |
+| chunks                     |
+| get[_mut]                  |
+| iter[_mut]                 |
+| last[_mut]                 |
+| sort(_unstable)[_by[_key]] |
+| split_at_mut               |
+| swap                       |
+| ..                         |
+
+** deref
+Vec<T> deref to slice,
+array seems not deref, but we still can use &arr as &[T]:
+https://users.rust-lang.org/t/til-arrays-dont-deref-into-a-slice/32743
+
+** string literals are slices
+string literals are stored inside the binary(immutable),
+&str is a slice pointing to the specific point of binary
 
 * struct
 ** 3 types
@@ -403,6 +447,14 @@ deref is awesome!
 
 *** trait's Self vs struct's Self
 https://stackoverflow.com/questions/30938499/why-is-the-sized-bound-necessary-in-this-trait
+
+* advanced types (19.3)
+** newtype pattern (struct NewTypeName(ExistedTypeName))
+** type alias (type TypeNameAliase = ExistedTypeName)
+** never type (!)
+** Sized, ?Sized
+DST: Dynamically Sized Type
+The golden rule of dynamically sized types is that we must always put values of dynamically sized types behind a pointer of some kind.
 
 * error handling
 see ch09_err.rs
