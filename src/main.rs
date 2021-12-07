@@ -31,10 +31,13 @@ mod ch17_3_1_state_pattern;
 mod ch17_3_2_type_driven;
 mod ch18_match;
 mod ch19_1_unsafe;
+mod ch19_2_adv_trait;
 mod ch19_4_adv_fn;
 
 mod recursive;
 
 mod calculator;
+
+mod conversion;
 
 fn main() {}

@@ -377,6 +377,32 @@ Copy
 Sized
 Send (auto)
 Sync (auto)
+Unpin (auto)
+
+** Advanced Traits (19.2)
+*** associated types as placeholder
+Iterator trait's Item (we can use `type SomeType;` in our custome trait)
+
+*** Disambiguation: calling methods with the same name
++ method: TraitName::method(&obj, ..) # TraitName::<T>
++ associated function: <StructName as TraitName>::function(..)
+
+*** super trait
+ch17_2_trait_object.rs
+#+BEGIN_SRC rust
+trait NewTrait: fmt::Debug + fmt::Display {}
+impl<T: fmt::Debug + fmt::Display> NewTrait for T {}
+#+END_SRC
+NewTrait require fmt::Debug trait and fmt::Display trait,
+NOTE:
+the first line tells: (one struct meet) NewTrait => fmt::Debug + fmt::Display,
+the second line tells: (one struct meet) fmt::Debug + fmt::Display => NewTrait
+
+*** orphan rule, newtype pattern, deref trait
+deref is awesome!
+
+*** trait's Self vs struct's Self
+https://stackoverflow.com/questions/30938499/why-is-the-sized-bound-necessary-in-this-trait
 
 * error handling
 see ch09_err.rs
