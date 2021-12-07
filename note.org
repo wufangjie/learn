@@ -344,23 +344,6 @@ while let Some(node) = p {
 * traits
 In Rust, the methods of a trait inherit the visibility of the trait itself
 
-parse trait?
-
-| need to impl |
-|--------------|
-| Ord          |
-| Iterator     |
-| Display      |
-
-| for trait bound |
-|-----------------|
-| PartialOrd      |
-| Copy            |
-| Clone           |
-| Debug           |
-| Eq              |
-| Hash            |
-
 ** Ord trait and cmp (for sort_by)
 #+BEGIN_SRC rust
 use std::ord::Ordering;
@@ -408,10 +391,13 @@ fn test() {
 
 ** Clone trait
 #+BEGIN_SRC rust
-fn clone(&self) -> Self
+pub trait Clone {
+    fn clone(&self) -> Self
+    // fn clone_from(&mut self, source: &Self) { ... } // auto?
+}
 #+END_SRC
 
-*** primitive
+for primitive types, just:
 #+BEGIN_SRC rust
 *self
 #+END_SRC
@@ -422,6 +408,13 @@ Sized
 Send (auto)
 Sync (auto)
 Unpin (auto)
+
+** Default trait (prelude)
+#+BEGIN_SRC rust
+pub trait Default {
+    fn default() -> Self;
+}
+#+END_SRC
 
 ** Advanced Traits (19.2)
 *** associated types as placeholder
@@ -454,6 +447,7 @@ https://stackoverflow.com/questions/30938499/why-is-the-sized-bound-necessary-in
 ** never type (!)
 ** Sized, ?Sized
 DST: Dynamically Sized Type
+TODO:NOTE: Every trait is a dynamically sized type
 The golden rule of dynamically sized types is that we must always put values of dynamically sized types behind a pointer of some kind.
 
 * error handling
