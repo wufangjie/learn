@@ -121,6 +121,9 @@ dbgt!(&a.clone()); // &str
 dbgt!(&a.to_owned()); // String
 dbgt!(&String::from(a).as_str());
 dbgt!(&a.to_string());
+dbgt!(&(&&s).to_owned()); // &&str, one less &
+dbgt!(&(&&s).clone()); // &&str, one less &
+dbgt!(&(&&s).to_string()); // String
 #+END_SRC
 
 ** common consts
@@ -169,6 +172,15 @@ see ch_08_2_string.rs
 
 ** HashMap<K, V>
 see ch_08_3_hashmap.rs
+
+** HashSet<K>
+*** retain (for faster? repeat intersection)
+#+BEGIN_SRC rust
+let mut left = lst[0].clone();
+for i in 1..lst.len() {
+    left.retain(|x| lst[i].contains(x));
+}
+#+END_SRC
 
 * slice type
 https://doc.rust-lang.org/std/primitive.slice.html
@@ -221,6 +233,8 @@ https://users.rust-lang.org/t/til-arrays-dont-deref-into-a-slice/32743
 string literals are stored inside the binary(immutable),
 &str is a slice pointing to the specific point of binary
 
+** &str, &&str, &&&str
+
 * struct
 ** 3 types
 + normal struct (classic C structs)
@@ -267,6 +281,50 @@ Err(E)
 + ch15_4_rc.rs Cons(T, Rc<List<T>>)
 + ch15_5_refcell.rs Cons(RefCell<T>, Rc<List<T>>)
 + ch15_6_ref_cycle.rs Cons(T, RefCell<Rc<List<T>>>),
+
+* iterator
+** flat_map
+raw rust way to make product (no macro, itertools)
+#+BEGIN_SRC rust
+let lsts = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8]];
+let mut res = vec![0];
+for lst in lsts {
+    res = res
+        .into_iter()
+        .flat_map(|x: i32| {
+            std::iter::repeat(x * 10)
+                .zip(lst.iter())
+                .map(|(a, b)| a + b)
+        })
+        .collect();
+}
+dbg!(res);
+#+END_SRC
+
+** by_ref
+#+BEGIN_SRC rust
+fn by_ref(&mut self) -> &mut Self
+where
+    Self: Sized,
+{
+    self
+}
+#+END_SRC
+NOTE: by_ref use a method call to take ownership temporary:
+`&mut self` is sugar for `self: &mut Self`, so the type is fine
+`iter.by_ref()` is sugar for `(&mut iter).by_ref()`
+the "temporay variable" `&mut iter` will drop after some method calls,
+then `iter` get the ownership back.
+
+** take_while
+#+BEGIN_SRC rust
+let part1 = iter.by_ref().skip(1).take_while(|s| s != "").collect();
+#+END_SRC
+** cloned
+sugar for
+#+BEGIN_SRC rust
+map(|x| x.clone())
+#+END_SRC
 
 * project structure
 ** package
