@@ -2,7 +2,7 @@ use crate::dbgt;
 use std::collections::HashMap;
 
 #[test]
-pub fn test() {
+fn test_ch08_3() {
     let mut map_1: HashMap<_, _> = HashMap::new();
     map_1.insert(1, 2); // insert will transfer ownership
                         // map_1.get(&1) // return Some(&V)
@@ -11,7 +11,7 @@ pub fn test() {
 
     let keys = vec![1, 2, 3, 4, 5];
     let vals = vec![6, 7, 8, 9, 0];
-    let mut map_from_pairs: HashMap<_, _> = keys.into_iter().zip(vals.into_iter()).collect();
+    let mut map_from_pairs: HashMap<_, _> = keys.into_iter().zip(vals).collect();
     assert_eq!(5, map_from_pairs.len());
     assert_eq!(Some(9), map_from_pairs.remove(&4));
 
