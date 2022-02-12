@@ -1,5 +1,5 @@
 use crate::dbgt;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::rc::{Rc, Weak};
 
@@ -39,5 +39,7 @@ fn make_cycle() {
 
 // use Weak to prevent reference cycle
 // A Weak pointer is useful for keeping a temporary reference
-// Weak::new()
-// maybe weak is useful for safe double linked list
+// Weak::new() // NOTE: no parameter
+// maybe(X) weak is useful for safe double linked list
+// Rc::downgrade()
+// weak_obj.upgrade()

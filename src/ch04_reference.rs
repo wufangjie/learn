@@ -60,6 +60,7 @@ fn test() {
     }
 
     // reference access field, String
+    // Rust automatically adds in &, &mut, or * so object matches the signature of the *method*
     dbgt!(&b.1);
     dbgt!(&y[1]);
     dbgt!(&m.1);
@@ -82,7 +83,7 @@ fn take_reference() {
     }
 
     let mut a = String::from("hello");
-    let b = &mut a;
+    let b = &mut a; // sized on stack
     test_take(b);
     println!("b = {} still can use outer!", b);
 }

@@ -1,4 +1,5 @@
 use crate::dbgt;
+use std::cell::Cell;
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
@@ -38,6 +39,10 @@ where
     }
 }
 
+
+
+// NOTE: cell version also works
+
 //#[derive(Debug)]
 struct Messenger {
     message_store: RefCell<Vec<String>>,
@@ -56,7 +61,12 @@ impl Messenger {
 impl SendMessage for Messenger {
     fn send(&self, msg: String) {
         self.message_store.borrow_mut().push(msg);
-        //self.message_store.get_mut().push(msg);
+
+        // let mut lst = self.message_store.take();
+        // lst.push(msg);
+        // self.message_store.set(lst);
+        // // self.message_store.get_mut().push(msg); // not work
+        // // NOTE: we can not get mutable reference from immutable variable
     }
 }
 
@@ -68,12 +78,12 @@ fn test_mock() {
         limit_checker.set_value(v);
     }
     assert_eq!(
-        mock.message_store,
-        RefCell::new(vec![
+        mock.message_store.into_inner(), // cell and refcell both ok
+        vec![
             String::from("0.8500 > 0.75"),
             String::from("0.9500 > 0.9"),
             String::from("1.9500 > 1")
-        ])
+        ]
     );
 }
 

@@ -14,7 +14,7 @@ where
     for v in lst {
         if v > ret {
             dbgt!(&&v);
-            ret = &v; // deref?
+            ret = v; //ret = &v; // is ok, deref?
             dbgt!(&ret);
         }
     }
@@ -22,7 +22,7 @@ where
 }
 
 #[test]
-pub fn test_largest() {
+fn test_largest() {
     let a: Vec<String> = vec![23, 33, 6, 84, 70, 29, 57, 43, 47, 18, 63]
         .into_iter()
         .map(|x| x.to_string())

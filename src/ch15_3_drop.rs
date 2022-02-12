@@ -13,6 +13,8 @@ impl Drop for TestDrop {
 fn take_ownership<T>(_: T) {
     // maybe it is what `std::mem::forget` do
     println!("Do nothing, just take ownership");
+    // NOTE: drop() will be called when this function finished
+    // std::mem::forget will not do this?
 }
 
 // NOTE:

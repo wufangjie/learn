@@ -11,11 +11,16 @@
 + There can only be one owner at a time.
 + When the owner goes out of scope, the value will be dropped.
 
-NOTE: temporary value have temporary owner, which will dropped when expression end
+NOTE: temporary value have temporary owner, which will dropped when temporary owner be dropped (i.e. expression end)
+NOTE: the difference: copy (stack data), move (transfer ownership), clone (deep copy)
 
 ** Reference Rules(Borrowing Rules)
 + At any given time, you can have either one mutable reference or any number of immutable references.
 + References must always be valid.
+
+NOTE: valid means:
+1. reference's scope is no more than owner's
+2. cannot borrow immutable value mutably
 
 * basic
 ** variables and constants
@@ -51,20 +56,25 @@ https://users.rust-lang.org/t/what-is-different-between-mut-self-and-mut-self/59
 ** None and ()
 #+BEGIN_SRC rust
 dbg!(&None::<i32>); // let none: Option<i32> = None; (:: > &)
-dbg!(&()); // () is unit type, whose only possible value is an empty tuple
-// -> (), Result<(), Box<dyn Error>>, HashMap<T, ()>
+dbg!(&());
 #+END_SRC
+() is unit type, whose only possible value is an empty tuple (which is also ())
++ -> () (omit)
++ -> Result<(), Box<dyn Error>>
++ HashMap<T, ()>
 
 ** statements and expressions
 only two kinds of statements:
 + let statements
 + item declarations
 
+NOTE: place a semicolon at the end of an expression will change it to a statement
+
 ** comments
 + // Line comments
-+ /* */ Block comments
++ ~/* */~ Block comments
 + //! (docs for enclosing items, top)
-+ /// (docs for following items)
++ ~///~ (docs for following items)
 
 #+BEGIN_SRC rust
 let x = 5 + /* 90 + */ 5;
@@ -81,7 +91,7 @@ dbg!(&(1..=4).collect::<Vec<i32>>());
 
 ** operator precedence
 https://doc.rust-lang.org/reference/expressions.html
-+ :: paths
++ :: (paths)
 + . (method calls, field expressions)
 + () []
 + ?
@@ -135,7 +145,7 @@ dbg!(std::f64::consts::E);
 ** drop
 #+BEGIN_SRC rust
 let a = Rc::new(5);
-Rc::clone(&a); // temporary owner dropped when expression finished
+Rc::clone(&a); // temporary owner will be dropped when expression end
 assert_eq!(1, Rc::strong_count(&a));
 #+END_SRC
 
@@ -147,6 +157,8 @@ see ch17_3_1_state_pattern.rs
 
 ** method call sugar
 Rust automatically adds in &, &mut, or * so object matches the signature of the *method*
+
+** ? operator can be used to return an Option (not only Result)
 
 * collections
 ** Tuple
@@ -484,6 +496,8 @@ Iterator trait's Item (we can use `type SomeType;` in our custome trait)
 
 *** super trait
 ch17_2_trait_object.rs
+ch19_2_adv_trait.rs (PrintOutline trait)
+
 #+BEGIN_SRC rust
 trait NewTrait: fmt::Debug + fmt::Display {}
 impl<T: fmt::Debug + fmt::Display> NewTrait for T {}
@@ -494,6 +508,7 @@ the first line tells: (one struct meet) NewTrait => fmt::Debug + fmt::Display,
 the second line tells: (one struct meet) fmt::Debug + fmt::Display => NewTrait
 
 *** orphan rule, newtype pattern, deref trait
+orphan: we cannot implement external traits on external types (but we can use the Newtype Pattern)
 deref is awesome!
 
 *** trait's Self vs struct's Self
@@ -501,12 +516,37 @@ https://stackoverflow.com/questions/30938499/why-is-the-sized-bound-necessary-in
 
 * advanced types (19.3)
 ** newtype pattern (struct NewTypeName(ExistedTypeName))
+ch19_2_adv_trait.rs (Wrapper struct)
+
 ** type alias (type TypeNameAliase = ExistedTypeName)
+#+BEGIN_SRC rust
+type Result<T> = Result<T, std::io::Error>;
+// Result is std::result::Result, which is prelude
+#+END_SRC
+
 ** never type (!)
+(continue, break, panic, loop)'s value
+
 ** Sized, ?Sized
 DST: Dynamically Sized Type
 TODO:NOTE: Every trait is a dynamically sized type
-The golden rule of dynamically sized types is that we must always put values of dynamically sized types behind a pointer of some kind.
+NOTE: The golden rule of dynamically sized types is that we must always put values of dynamically sized types **behind** a pointer of some kind.
+
++ &str, Box<str>, Rc<str>
++ &[u8], Box<[u8]>, Rc<[u8]>
++ &dyn Trait, Box<dyn Trait>, Rc<dyn Trait>
+https://users.rust-lang.org/t/use-case-for-box-str-and-string/8295
+
+Sized trait is automatically implemented for everything whose size is known at compile time (default)
+Rust implicitly adds a bound on Sized to every generic function
+
+#+BEGIN_SRC rust
+fn generic<T: ?Sized>(t: &T) {
+    // --snip--
+}
+// ?Sized means "T may or may not be Sized"
+// we can only use &T (rather than T), because the type need to be sized
+#+END_SRC
 
 * error handling
 see ch09_err.rs
@@ -553,6 +593,11 @@ If you only want to keep one copy of codes
 #+BEGIN_SRC sh
 ln -s <real folder> <link folder>
 #+END_SRC
+
+package version
+version = "x.y.z" is short for "^x.y.z"
+cargo run will keep version, cargo update will update to x.y.max
+
 * time profile
 https://www.youtube.com/watch?v=BxSEhr2MggY
 
@@ -577,3 +622,21 @@ linux-tools-5.11.0-40-generic
 
 /proc/sys/kernel/perf_event_paranoid
 change 4 -> -1
+* cargo
+** special directory, special command
+*** /tests
+https://doc.rust-lang.org/book/ch11-03-test-organization.html
+Integration Tests can only test *library's public* API
+#+BEGIN_SRC sh
+cargo test # everything is same as unit tests
+#+END_SRC
+
+*** /examples
+#+BEGIN_SRC sh
+cargo run --example example # /root/examples/example.rs
+#+END_SRC
+
+*** src/bin
+#+BEGIN_SRC sh
+cargo run --bin server # run sp crate /root/src/bin/
+#+END_SRC

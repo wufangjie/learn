@@ -65,8 +65,9 @@ fn test() {
     dbgt!(&(&3).deref()); // regular reference implemented deref (return self)
     deref_coercion(&p);
     // & is needed, we must keep an & so that we can call deref(&self)
-    Box::new(Rc::new(p)).coercion_method(); // Rust add & automatically
-                                            // RefCell dit not implement Deref, we must use borrow or borrow_mut
+    Box::new(Rc::new(p)).coercion_method();
+    // Rust add & automatically
+    // RefCell did not implement Deref, we must use .borrow() or .borrow_mut()
 }
 
 fn deref_coercion(v: &i32) {
