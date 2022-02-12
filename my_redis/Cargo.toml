@@ -1,0 +1,18 @@
+[package]
+name = "my_redis"
+version = "0.1.0"
+edition = "2021"
+default-run = "my_redis"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures = "0.3"
+tokio = { version = "1", features = ["full"] }
+mini-redis = "0.4"
+bytes = "1"
+utils = { path = "utils", version = "0.1.0"}
+
+
+[profile.test]
+opt-level = 3
