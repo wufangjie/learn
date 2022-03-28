@@ -21,7 +21,7 @@ enum Color {
 enum Message {
     Quit,
     Move { x: i32, y: i32 },
-    Write(String), // object: enum, struct..
+    Write(String),
     ChangeColor(i32, i32, i32),
 }
 
@@ -66,4 +66,45 @@ fn test() {
 
     let list = List::new().prepend(1).prepend(2).prepend(3);
     assert_eq!("(3, (2, (1, ())))", list.stringify());
+}
+
+#[derive(Debug, PartialEq)]
+enum Attribute {
+    Strength,
+    Agility,
+    Intellect,
+}
+
+#[derive(Debug, PartialEq)]
+enum Parameter {
+    Health,
+    Mana,
+}
+
+#[derive(Debug, PartialEq)]
+struct MultiBuf {
+    attr_lst: Vec<Attribute>,
+    param_lst: Vec<Parameter>,
+}
+
+#[derive(Debug, PartialEq)]
+enum BuffTarget {
+    Attribute(Attribute),
+    Parameter(Parameter),
+    Multi(MultiBuf),
+}
+
+#[test]
+fn test_nested() {
+    let a = BuffTarget::Attribute(Attribute::Strength);
+    let b = BuffTarget::Parameter(Parameter::Mana);
+    let c = BuffTarget::Multi(MultiBuf {
+        attr_lst: vec![Attribute::Strength],
+        param_lst: vec![Parameter::Mana],
+    });
+    dbg!(&a);
+    dbg!(&b);
+    dbg!(&c);
+    assert_ne!(a, b);
+    assert_ne!(a, c);
 }
