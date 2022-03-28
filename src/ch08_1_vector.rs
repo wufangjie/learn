@@ -47,7 +47,6 @@ fn test_vec() {
     assert_eq!(vec![0, 1, 10, 4, 5, 6, 7, 8, 9], x);
 }
 
-
 #[test]
 fn test_extend() {
     // let mut a = vec![String::from("1"), String::from("2")];
