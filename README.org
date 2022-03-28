@@ -1,0 +1,19 @@
+* note.org
+Markdown things which I think meet at least one of the following:
++ important
++ easy to forget
++ useful (not easy to find)
++ need to reorganize systematically (diff)
+
+* src
+Some test codes learning the book and rust-by-example
+
++ quicksort
++ calculator
++ recursive
+
+* playgroud
+beachmark example using criterion = "0.3"
+
+* my_redis
+follow tokio's tutorial example
