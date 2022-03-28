@@ -10,10 +10,6 @@ enum Message {
     Hello { id: i32 },
 }
 
-// https://doc.rust-lang.org/book/ch18-03-pattern-syntax.html
-// https://doc.rust-lang.org/rust-by-example/flow_control/match.html
-// https://rust-lang.github.io/rfcs/2005-match-ergonomics.html
-
 #[test]
 fn test() {
     let Point { y, x } = Point {
