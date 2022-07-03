@@ -11,22 +11,34 @@
 + There can only be one owner at a time.
 + When the owner goes out of scope, the value will be dropped.
 
-NOTE: temporary value have temporary owner, which will dropped when temporary owner be dropped (i.e. expression end)
+NOTE: temporary value have temporary owner, will be dropped when the temporary owner goes out of scope (i.e. the expression is over)
 NOTE: the difference: copy (stack data), move (transfer ownership), clone (deep copy)
 
 #+BEGIN_SRC rust
 let a = Rc::new(5);
-Rc::clone(&a); // temporary owner will be dropped when expression end
+Rc::clone(&a); // temporary
 assert_eq!(1, Rc::strong_count(&a));
 #+END_SRC
 
 ** Reference Rules(Borrowing Rules)
-+ At any given time, you can have either one mutable reference or any number of immutable references.
-+ References must always be valid.
+1. At any given time, you can have either one mutable reference or any number of immutable references.
+2. References must always be valid.
 
 NOTE: valid means:
 1. reference's scope is no more than owner's
 2. cannot borrow immutable value mutably
+
+*** how rust ensure all references always valid (Borrow Checker)
+#+begin_src rust
+{
+    let r;
+    {
+        let x = 5;
+        r = &x;
+    }
+    println!("r: {}", r);
+}
+#+end_src
 
 * basic
 ** if expression
@@ -119,6 +131,15 @@ let user2 = User {
 };
 #+end_src
 
+*** the rest pattern
+#+begin_src rust
+let week = ["Mon", "Tue", "Wed", "Thur", "Fri", "Sat", "Sun"];
+let [first, middle @ .., last] = week; // not for tuple
+assert_eq!(first, "Mon");
+dbgt!(&middle);
+assert_eq!(last, "Sun");
+#+end_src
+
 ** ? operator
 used to return an `Option` or a `Result`
 https://doc.rust-lang.org/rust-by-example/error/option_unwrap/question_mark.html
@@ -155,6 +176,7 @@ use utils::dbgt::type_of;
 
 let none1: Option<i32> = None;
 let none2 = None::<i32>;
+assert_eq!(0, std::mem::size_of::<()>());
 assert_eq!(none1, none2);
 assert_eq!(type_of(&none1), "core::option::Option<i32>");
 #+end_src
@@ -208,6 +230,22 @@ dbgt!(&(&&s).clone());     // &&&str -> &&str
 dbgt!(&(&&s).to_owned());  // &&&str -> &&str
 dbgt!(&(&&s).to_string()); // String
 #+END_SRC
+
+** TODO Clone VS Copy
+** size_of VS size_of_val
+#+begin_src rust
+let x: [u8; 13] = [0; 13];
+let y: &[u8] = &x;
+assert_eq!(13, std::mem::size_of_val(y));
+let pointer_size = std::mem::size_of::<*const u8>();
+assert_eq!(2 * pointer_size, std::mem::size_of::<&[u8]>());
+#+end_src
+
+** TODO s.as_str() VS &s[..] VS AsRef<str>
+There is no trait behind as_str
+
+** trait's Self vs struct's Self
+https://stackoverflow.com/questions/30938499/why-is-the-sized-bound-necessary-in-this-trait
 
 * collections
 ** Tuple
@@ -290,10 +328,10 @@ assert_eq!(a2.map_or_else(|| 2 * k, f), 42);
 #+end_src
 
 *** unwrap(), unwrap_or(), unwrap_or_else()
-*** and(), and_then()
+*** and(), and_then() -> Self
 logical_and, None is false
 
-*** or(), or_else()
+*** or(), or_else() -> Self
 logical_or, None is false
 
 *** convert to Result<T, E>
@@ -338,10 +376,10 @@ pub enum Result<T, E> {
 *** is_ok(), is_err()
 *** map(), map_or(), map_or_else()
 *** unwrap(), unwrap_or(), unwrap_or_else()
-*** and(), and_then()
+*** and(), and_then() -> Self
 logical_and, Err is false
 
-*** or(), or_else()
+*** or(), or_else() -> Self
 logical_or, Err is false
 
 *** convert to Option<T/E>
@@ -354,7 +392,7 @@ logical_or, Err is false
 + ch15_5_refcell.rs Cons(RefCell<T>, Rc<List<T>>)
 + ch15_6_ref_cycle.rs Cons(T, RefCell<Rc<List<T>>>),
 
-* iterator trait
+* iterator and closure
 ** map VS flat_map
 raw rust way to make product (no macro, itertools)
 #+BEGIN_SRC rust
@@ -427,6 +465,8 @@ where
 + step_by
 + chunks (NOTE:TODO: UTF8LossyChunksIter<'a> trait)
 
+** TODO closure ||
+
 * managing project
 ** package
 #+BEGIN_SRC sh
@@ -484,11 +524,10 @@ use std::{p1, p2::{p3, p4}}; // nested path is ok
 
 * pattern and match (ergonomic)
 ** pattern
-*** match arm
-*** if let
-*** while let
+*** match arms
+*** if/while let
 *** for loop
-*** let
+*** let statement
 #+begin_src rust
 let (x, y, z) = (1, 2, 3);
 #+end_src
@@ -500,17 +539,17 @@ fn prod_triple((x, y, z): (i32, i32, i32)) -> i32 {
 }
 #+end_src
 
-** match arm
-the code in match arm can be:
+** match arms
+the code in match arms can be:
 + an expression with a comma,
 + multiple lines with curly brackets without a comma
 
 ** refutable, irrefutable
-match arm(except the last one), if let, while let can be refutable, other three must be irrefutable
+match arm(except the last one), if let, while let can be refutable, others must be irrefutable
 
 ** important
-NOTE: match obj will not move or copy
-NOTE: slice(include array) pattern is valid
+NOTE: match obj will not move or copy (but destructure will drop it?)
+NOTE: we can destructure slice (include array)
 
 #+BEGIN_SRC rust
 let mut p = &mut self.head;
@@ -526,7 +565,21 @@ while let Some(node) = p {
 // we can not use p even after breaking loop
 // but if we use `&mut something_owned` to match,
 // we can still use something_owned after breaking loop
+// because we just destructure the mutable reference to another, break the scope will drop it
 #+END_SRC
+
+#+begin_src rust
+struct Test {
+    a: i32,
+    b: String,
+}
+let value = Test { a: 2, "hello world".to_string()};
+match value {
+    Test {b} if value.len() == 11 => println!("Found: {}", x), // if we comment this value will not move
+    _ => println!("Not Found!"),
+}
+// dbg!(&value); // we can not use value here, value was moved
+#+end_src
 
 ** pattern syntax
 see ch18_match.rs
@@ -539,8 +592,6 @@ https://rust-lang.github.io/rfcs/2005-match-ergonomics.html
 
 * slice type
 https://doc.rust-lang.org/std/primitive.slice.html
-
-read ch19.3
 
 ** basic
 + Slices are a view into a block of memory represented as a pointer and a length
@@ -561,7 +612,8 @@ NOTE:
 ** [T] and &[T]
 https://stackoverflow.com/questions/57808948/confusion-between-t-and-t
 
-str([T]) is DST (19.4), while &str(&[T]) is sized.
++ str is DST, while &str is sized.
++ [T] is DST, while &[T] is sized.
 
 ** traits
 | SliceIndex | get(), index()([i]) |
@@ -589,134 +641,190 @@ string literals are stored inside the binary(immutable),
 &str is a slice pointing to the specific point of binary
 
 ** &str, &&str, &&&str
-* traits
+* generic (includ lifetime)
+types, const, lifetime
+
+see https://doc.rust-lang.org/reference/items/generics.html
+
+NOTE: we can not use const generic to declare const/static variable
+
+*** lifetime 'a
+lifetime bound
+The bound 'a: 'b is usually read as 'a outlives 'b.
+'a: 'b means that 'a lasts at least as long as 'b. so a reference &'a () is valid whenever &'b () is valid.
+NOTE: () means empty tuple
+
+*** T: 'a means that all lifetime parameters of T outlive 'a
++ i32: 'static
++ 'static: 'a
+
+*** T: Trait + 'a
+NOTE: lifetimes themselves generic
+scope/lifetime/lifetime_bounds.html
+
+*** high ranked trait bound: for<'a>
+*** '_ VS _ (infer lifetime VS type)
+#+begin_src rust
+fn print1(s: &str);                                   // elided
+fn print2(s: &'_ str);                                // also elided
+fn print3<'a>(s: &'a str);                            // expanded
+
+fn new1(buf: &mut [u8]) -> Thing<'_>;                 // elided - preferred
+fn new2(buf: &mut [u8]) -> Thing;                     // elided
+fn new3<'a>(buf: &'a mut [u8]) -> Thing<'a>;          // expanded
+#+end_src
+
+*** Lifetime Annotations in Struct Definitions (struct Thing<'a>)
+means an instance can't outlive the reference it holds
+
+*** Lifetime elision in functions
+*** which variable share lifetime
+* Advanced Traits (19.2)
+** visibility (pub keyword is useless)
 In Rust, the methods of a trait inherit the visibility of the trait itself
 
-** Ord trait and cmp (for sort_by)
-#+BEGIN_SRC rust
-use std::ord::Ordering;
-fn cmp(&self, other: &T) -> Ordering;
-
-enum Ordering{
-    Less,
-    Equal,
-    Greater,
-}
-#+END_SRC
-
-** AsRef trait
-#+BEGIN_SRC rust
-pub trait AsRef<T: ?Sized> {
-    /// Performs the conversion.
-    #[stable(feature = "rust1", since = "1.0.0")]
-    fn as_ref(&self) -> &T;
-}
-#+END_SRC
-#+BEGIN_SRC rust
-use std::fs::File;
-use std::io;
-use std::io::Read;
-use std::path::Path;
-
-pub fn get_file_content<P: AsRef<Path>>(file_path: P) -> Result<String, io::Error> {
-    let mut file = File::open(file_path)?;
-    let mut content = String::new();
-    file.read_to_string(&mut content)?;
-    Ok(content)
-}
-#+END_SRC
-#+BEGIN_SRC rust
-fn test_as_ref<T: AsRef<str> + std::fmt::Debug>(s: T) {
-    dbgt!(&s.as_ref());
-}
-
-#[test]
-fn test() {
-    test_as_ref("hello");
-    test_as_ref(String::from("hello"));
-}
-#+END_SRC
-
-** ToString trait (std::string)
+** associated types and default type parameters
 #+begin_src rust
-pub trait ToString {
-    fn to_string(&self) -> String;
+pub trait Add<Rhs = Self> {
+    type Output;
+
+    fn add(self, rhs: Rhs) -> Self::Output;
+}
+
+pub trait Iterator {
+    type Item;
+
+    fn next(&mut self) -> Option<Self::Item>;
 }
 #+end_src
 
-** Clone trait (std::clone)
-#+BEGIN_SRC rust
-  pub trait Clone {
-      fn clone(&self) -> Self;
+NOTE: Rhs = Self is called default type parameters
+You’ll use default type parameters in two main ways:
 
-      fn clone_from(&mut self, source: &Self) {
-	  *self = source.clone()
-      }
-  }
-#+END_SRC
++ To extend a type without breaking existing code
++ To allow customization in specific cases most users won’t need
 
-for primitive types, just:
-#+BEGIN_SRC rust
-*self
-#+END_SRC
+** traits in a function (impl keyword)
++ as paramter
++ as return type
++ it's just sugar for generic type which implemented the trait
 
-** ToOwned trait (std::borrow)
-#+begin_src rust
-  pub trait ToOwned {
-      type Owned: Borrow<Self>;
-      fn to_owned(&self) -> Self::Owned;
-
-      fn clone_into(&self, target: &mut Self::Owned) {
-	  *target = self.to_owned();
-      }
-  }
-#+end_src
-
-** special traits (in std::marker, no method)
-Copy
-Sized
-Send (auto)
-Sync (auto)
-Unpin (auto)
-
-** Default trait (prelude)
-#+BEGIN_SRC rust
-pub trait Default {
-    fn default() -> Self;
-}
-#+END_SRC
-
-** Advanced Traits (19.2)
-*** associated types as placeholder
-Iterator trait's Item (we can use `type SomeType;` in our custome trait)
-
-*** Disambiguation: calling methods with the same name
+** calling methods with the same name (disambiguation)
 + method: TraitName::method(&obj, ..) # TraitName::<T>
 + associated function: <StructName as TraitName>::function(..)
 
-*** super trait
-ch17_2_trait_object.rs
+** supertrait, subtrait (when declare a trait)
+https://doc.rust-lang.org/stable/rust-by-example/trait/supertraits.html
 ch19_2_adv_trait.rs (PrintOutline trait)
 
 #+BEGIN_SRC rust
-trait NewTrait: fmt::Debug + fmt::Display {}
-impl<T: fmt::Debug + fmt::Display> NewTrait for T {}
+trait Person {
+    fn name(&self) -> String;
+}
+
+// Person is a `supertrait` of Student.
+// equivalent: trait Student where Self: Person
+trait Student: Person {
+    fn university(&self) -> String;
+}
+
+trait Programmer {
+    fn fav_language(&self) -> String;
+}
+
+// CompSciStudent (computer science student) is a subtrait of both Programmer and Student.
+trait CompSciStudent: Programmer + Student {
+    fn git_username(&self) -> String;
+}
 #+END_SRC
-NewTrait require fmt::Debug trait and fmt::Display trait,
-NOTE:
-the first line tells: (one struct meet) NewTrait => fmt::Debug + fmt::Display,
-the second line tells: (one struct meet) fmt::Debug + fmt::Display => NewTrait
 
-*** orphan rule, newtype pattern, deref trait
-orphan: we cannot implement external traits on external types (but we can use the Newtype Pattern)
-deref is awesome!
 
-*** trait's Self vs struct's Self
-https://stackoverflow.com/questions/30938499/why-is-the-sized-bound-necessary-in-this-trait
+trait A { type B: Copy; } is equivalent to trait A where Self::B: Copy { type B; }.
 
-** TODO From and Into
+** Using Trait Bounds to Conditionally Implement trait for some type
+#+begin_src rust
+impl<T: fmt::Display + ?Sized> ToString for T {
+    #[inline]
+    default fn to_string(&self) -> String {
+	let mut buf = String::new();
+	let mut formatter = core::fmt::Formatter::new(&mut buf);
+	fmt::Display::fmt(self, formatter)
+	    .expect("a Display implementation returned an error unexpectedly");
+	buf
+    }
+}
+#+end_src
 
-* advanced types (19.3)
+** orphan rule, newtype pattern, deref trait
++ orphan rule: we cannot implement external traits on external types (but we can use Newtype Pattern to impl)
++ deref is awesome! (just deref wrapper to wrapped, the we can call all wrapped's methods directly on wrapper)
++ it is newtype pattern, not type alias
+
+example: implement Display for vec<T>
+#+begin_src rust
+struct MyVec<T>(Vec<T>);
+
+impl<T> std::ops::Deref for MyVec<T> {
+    type Target = Vec<T>;
+
+    fn deref(&self) -> &Self::Target {
+	  &self.0
+    }
+}
+
+impl<T> std::ops::DerefMut for MyVec<T> {
+    // NOTE: Deref is supertrait of DerefMut, so we can use Self::Target directly
+    fn deref_mut(&mut self) -> &mut Self::Target {
+	  &mut self.0
+    }
+}
+
+impl<T> std::fmt::Display for MyVec<T>
+where
+    T: std::fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	  write!(
+	      f,
+	      "MyVec[{}]",
+	      self.0
+		  .iter()
+		  .map(|x| x.to_string())
+		  .collect::<Vec<String>>()
+		  .join(", ")
+	  )
+    }
+}
+
+#[test]
+fn test_my_vec() {
+    let mut lst = MyVec(vec![1, 2, 3, 4, 5]);
+    println!("{}", lst);
+    dbg!(lst.len());
+    dbg!(lst.last());
+    lst.reverse();
+    println!("{}", lst);
+}
+#+end_src
+
+** trait object (dyn)
+#+begin_src rust
+dbg!(std::mem::size_of::<Box dyn ToOwned>()); // two pointer size
+#+end_src
+
++ only support auot-traits: send, sync, unpin (https://doc.rust-lang.org/reference/special-types-and-traits.html#auto-traits)
+
+*** dyn
++ dyn Trait VS impl Trait
+
+dynamic object
++ &Trait, &mut Trait, Box<Trait> (Rust2015 or earlier)
++ &dyn Trait, &mut dyn Trait, Box<dyn Trait> (Rust2018 or later)
+
+*** TODO vtable
+
+** TODO derive
+* Advanced Types (19.3)
 ** newtype pattern (struct NewTypeName(ExistedTypeName))
 ch19_2_adv_trait.rs (Wrapper struct)
 
@@ -750,24 +858,71 @@ fn generic<T: ?Sized>(t: &T) {
 // we can only use &T (rather than T), because the type need to be sized
 #+END_SRC
 
-* advanced tricks
-** common consts
+** DST (dynamic sized type)(unsized type)
+*** rules
+e.x. str is a DST, &str is slice
++ we cannot know how long a DST is until runtime
++ we cannot create a variable of type DST
++ we cannot take an argument of type DST
+
+Golden Rule: we must always put values of dynamically sized types behind a pointer of some kind
+
+*** two kinds
+slice
+trait object
+
+TODO every trait (Sized, ?Sized) is a dynamically sized type
+
+*** Sized trait
+Rust implicitly adds a bound on Sized to every generic function
+#+begin_src rust
+  fn generic(t: T) {
+      // --snip
+  }
+
+  fn generic<T: Sized>(t: T) {
+      // --snip
+  }
+#+end_src
+
+*** ?Sized means may or may not be Sized
+#+begin_src rust
+  fn generic<T: ?Sized>(t: &T) {
+      // --snip
+  }
+#+end_src
+
+* Advanced Tricks
+** common const variables
 #+BEGIN_SRC rust
 dbg!(std::f64::consts::PI);
 dbg!(std::f64::consts::E);
+dbg!(i8::MIN);
 #+END_SRC
 
 ** xx_or, xx_or_else
-map_or
-unwrap_or
+map_or, map_or_else
+unwrap_or, unwrap_or_else
 
 ** std::mem crate
 #+BEGIN_SRC rust
-use std::mem::{take, swap, size_of_val, forget}
+use std::mem::{take, swap, replace};
+use std::mem::{forget, drop};
 // forget takes ownership without running its destructor
-drop // std::mem::drop
+// drop is prelude
+use std::mem::{size_of_val, size_of}; // NOTE: the difference
 #+END_SRC
 see linkedlist.rs
+
+source code:
+#+begin_src rust
+pub fn drop<T>(_x: T) {}
+
+/// take ownership of t without running it's destructor
+pub const fn forget<T>(t: T) {
+    let _ = ManullyDrop::new(t);
+}
+#+end_src
 
 ** useful macros
 + unreachable!
@@ -782,9 +937,205 @@ for i in 1..lst.len() {
 }
 #+END_SRC
 
-* converting
-** TODO s.as_str() VS &s[..] VS AsRef<str>
-No trait behind as_str
+* prelude (traits and others)
+** std::cmp
+*** Ord trait and cmp (for slice::sort_by)
+#+BEGIN_SRC rust
+use std::cmp::Ordering;
+fn cmp(&self, other: &T) -> Ordering;
+
+pub enum Ordering{
+    Less,
+    Equal,
+    Greater,
+}
+#+END_SRC
+
+*** PartialEq, PartialOrd, Eq, Ord
+
+partial order (divisibility, subset):
+1. a <= a
+2. if a <= b and b <= a, then a = b
+3. if a <= b and b <= c, then a <= c
+
+#+begin_src rust
+  trait PartialEq<Rhs: ?Sized = Self> {
+      fn eq(&self, other: &Rhs) -> bool;
+
+      fn ne(&self, other: &Rhs) -> bool {
+	  !self.eq(other)
+      }
+  }
+
+  trait PartialOrd<Rhs: ?Sized = Self>: PartialEq<Rhs> {
+      // TODO: why need PartialEq<Rhs>, why needn't PartialEq<Rhs = Self>
+      fn partial_cmp(&self, other: &Rhs) -> Option<Ordering>;
+      // lt, le, gt, ge (with default implement)
+      }
+#+end_src
+
+*** Eq (no method)
+
+** std::marker
+*** Copy trait (std::marker)
+Stack-Only data
+
+memcpy? data when moving happens
+
+if the type, or any of its parts, has implemented the Drop trait, we cannot derive Copy trait (compile-error, stack-only data can just drop)
+
+*** Sized
+*** auto-traits
++ Send
++ Sync
++ Unpin
+
+** ToString (std::string)
+#+begin_src rust
+pub trait ToString {
+    fn to_string(&self) -> String;
+}
+#+end_src
+
+** Clone (std::clone)
+#+BEGIN_SRC rust
+  pub trait Clone {
+      fn clone(&self) -> Self;
+
+      fn clone_from(&mut self, source: &Self) {
+	  *self = source.clone()
+      }
+  }
+#+END_SRC
+
+for primitive types, just:
+#+BEGIN_SRC rust
+*self
+#+END_SRC
+
+** ToOwned (std::borrow)
+#+begin_src rust
+  pub trait ToOwned {
+      type Owned: Borrow<Self>;
+      fn to_owned(&self) -> Self::Owned;
+
+      fn clone_into(&self, target: &mut Self::Owned) {
+	  *target = self.to_owned();
+      }
+  }
+#+end_src
+
+** Default (std::default)
+#+begin_src rust
+  use crate::dbgt;
+
+
+  #[derive(Debug)]
+  struct TestDefault<T> {
+      i: i32,
+      s: String,
+      v: Vec<T>
+  }
+
+  impl<T> TestDefault<T> {
+      fn new() -> Self {
+	    Self {
+		i: 0,
+		s: String::new(),
+		v: Vec::new()
+	    }
+      }
+  }
+
+  impl<T> Default for TestDefault<T> {
+      // clippy::new_without_default warning
+      fn default() -> Self {
+	    Self::new() // a common implement
+      }
+  }
+
+  #[test]
+  fn test_default() {
+      let a: TestDefault<u8> = TestDefault::default(); // or Default::default();
+      let b = TestDefault {
+	    v: vec![6, 6, 6],
+	    ..TestDefault::default() // or Default::default()
+      };
+      dbgt!(&a);
+      dbgt!(&b);
+  }
+#+end_src
+
+** TODO std::iter
+** std::convert
+*** AsRef trait (TODO AsMut)
+#+BEGIN_SRC rust
+pub trait AsRef<T: ?Sized> {
+    /// Performs the conversion.
+    #[stable(feature = "rust1", since = "1.0.0")]
+    fn as_ref(&self) -> &T;
+}
+#+END_SRC
+#+BEGIN_SRC rust
+use std::fs::File;
+use std::io;
+use std::io::Read;
+use std::path::Path;
+
+pub fn get_file_content<P: AsRef<Path>>(file_path: P) -> Result<String, io::Error> {
+    let mut file = File::open(file_path)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+    Ok(content)
+}
+#+END_SRC
+#+BEGIN_SRC rust
+fn test_as_ref<T: AsRef<str> + std::fmt::Debug>(s: T) {
+    dbgt!(&s.as_ref());
+}
+
+#[test]
+fn test() {
+    test_as_ref("hello");
+    test_as_ref(String::from("hello"));
+}
+#+END_SRC
+
+*** TODO From and Into
+
+** std::ops
++ Drop
++ Fn
++ FnMut
++ FnOnce
+
+** TODO 2021
+*** std::iter::FromIterator
+#+begin_src rust
+impl<T> FromIterator<T> for LinkedList<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut lst = Self::new();
+        for item in iter {
+            lst.push_back(item);
+        }
+        lst
+    }
+}
+#+end_src
+
+** others (function, struct, enum)
++ std::mem::drop
++ std::boxed::Box
++ std::option::Option::{self, Some, None}
++ std::result::Result::{self, Err, Ok}
++ std::string::String
++ std::vec::Vec
+
+** derivable trait
++ Copy
++ Clone
++ Default
++ PartialEq, PartialOrd, Ord
 
 * I/O
 
@@ -873,11 +1224,186 @@ ln -s <real folder> <link folder>
 version = "x.y.z" is short for "^x.y.z"
 cargo run will keep version, cargo update will update to x.y.max
 
+** clippy
++ replace println!("") with println!()
++ replace write!(f, "\n") with writeln!(f)
++ https://rust-lang.github.io/rust-clippy/master/index.html#op_ref
++ https://rust-lang.github.io/rust-clippy/master/index.html#new_without_default
++ https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
++ https://rust-lang.github.io/rust-clippy/master/index.html
+
++ use is_empty() rather than ""  .len()
+  + &str
+  + String
+  + collections
+
++ https://rust-lang.github.io/rust-clippy/master/index.html#redundant_closure
+
++ if let None -> is_none()
+
+** "hello".bytes().nth(3) (Option<u8>) -> "hello".as_bytes().get(3) (Option<&u8>)
+** Index trait (use .as_bytes()[i] -> u8)
+#+begin_src rust
+use std::ops::{Deref, DerefMut, Index, IndexMut};
+use std::slice::SliceIndex;
+
+struct TestIndex<T> {
+    data: Vec<T>,
+}
+
+
+impl<T> Deref for TestIndex<T> {
+    type Target = Vec<T>;
+
+    fn deref(&self) -> &Self::Target {
+	    println!("Called deref");
+	    &self.data
+    }
+}
+
+impl<T, I: SliceIndex<[T]>> Index<I> for TestIndex<T> {
+    type Output = I::Output;
+    fn index(&self, index: I) -> &Self::Output {
+	    Index::index(&**self, index)
+	    // *self is an object of TestIndex
+    }
+}
+
+impl<T> DerefMut for TestIndex<T> {
+    // type Target = Vec<T>; // use supertrait Deref's Target
+    fn deref_mut(&mut self) -> &mut Self::Target {
+	    println!("Called deref_mut");
+	    &mut self.data
+    }
+}
+
+impl<T, I: SliceIndex<[T]>> IndexMut<I> for TestIndex<T> {
+    // type Output = I::Output; // use supertrait Index's Target
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+	    IndexMut::index_mut(&mut **self, index)
+    }
+
+}
+
+#[test]
+fn test() {
+    let mut lst = TestIndex {
+        data: vec![
+            "1".to_string(),
+            "2".to_string(),
+            "3".to_string(),
+            "4".to_string(),
+        ],
+    };
+    lst[1] = "hello".to_string();
+    // [index] will return *container.index(index)
+}
+#+end_src
+
 * see code
-closure
-generic
-lifetime
-error handling: see ch09_err.rs
-smart pointer
-fearless concurrency
-OO
+** error handling: see ch09_err.rs
+** smart pointer
+String, Vec are smart pointers (3 * pointer_size)
+
+** fearless concurrency
+** OO (forget about it)
+
+* other
+#+begin_src rust
+pub fn replace<'a, P>(&'a self, from: P, to: &str) -> String
+where
+    P: Pattern<'a>,
+#+end_src
+NOTE: The pattern can be a &str, char, a slice of chars, or a function or closure that determines if a character matches.
+
+str.split -> Split (impl Iterator)
+
+* rustup
+** 配置
+#+begin_src sh
+export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+#+end_src
+
+#+begin_src sh
+  rustup toolchain install nightly
+  rustc -vV # host: aarch64-apple-darwin
+  rustup component add rust-src --toolchain nightly
+
+  rustup component add rust-docs --toolchain stable
+#+end_src
+
+
+* cow
+Borrow trait
+
+* 如何看一个类有没有实现某个 trait
+#+begin_src rust
+fn main() {
+    <str as Clone>::clone; // 红色下划线
+    <i8 as Clone>::clone;
+    <&Vec<i8> as Clone>::clone;
+}
+#+end_src
+
+* TODO macos 下子 crate 不能跳转，和鼠标点击快速运行的选项，看看是不是 workspace 的问题
+* map/filter/filter_map (x, &x)
+#+begin_src rust
+
+
+  //P: FnMut(Self::Item) -> B
+  //P: FnMut(&Self::Item) -> bool
+  //F: FnMut(Self::Item) -> Option<B>
+
+  use utils::dbgt;
+  let raw = [[1u16, 2u16], [3u16, 4u16]];
+  let count = &raw;
+  count
+      .iter()
+      .map(|x| {
+	  dbgt!(&x); // side effect should put in loop, rather than map()
+	  x
+      })
+      .filter(|x| {
+	  dbgt!(&x);
+	  true
+      })
+      .count();
+#+end_src
+
+* constant vs static
+
+a static variable have a fixed address in memory. Constants, on the other hand, are allowed to duplicate their data whenever they’re used.
+
+ Accessing an immutable static variable is safe.
+
+ static variables can be mutable
+
+#+begin_src rust
+struct TypeWithDestructor(i32);
+
+impl Drop for TypeWithDestructor {
+    fn drop(&mut self) {
+        println!("Dropped. Held {}.", self.0);
+    }
+}
+
+const ZERO_WITH_DESTRUCTOR: TypeWithDestructor = TypeWithDestructor(0);
+
+fn create_and_drop_zero_with_destructor() {
+    let x = ZERO_WITH_DESTRUCTOR;
+    // x gets dropped at end of function, calling drop.
+    // prints "Dropped. Held 0.".
+}
+#+end_src
+
+https://rust-lang.github.io/rfcs/0246-const-vs-static.html
+
+https://users.rust-lang.org/t/what-is-const-fn/11879/2
+
+https://rust-lang.github.io/rfcs/0911-const-fn.html
+Allow marking free functions and inherent methods as const, enabling them to be called in constants contexts, with constant arguments.
+
+非 const 参数, 就不会在编译期运行
+
+* https://github.com/rust-lang/rust/issues/id

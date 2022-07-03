@@ -1,0 +1,286 @@
+* rules
+** Ownership Rules
+1. Each value in Rust has a variable that’s called its owner.
+2. There can only be one owner at a time.
+3. When the owner goes out of scope, the value will be dropped.
+
+NOTE: temporary value have temporary owner
+
+#+begin_src rust
+let a = Rc::new(5);
+Rc::clone(&a); // temporary
+assert_eq!(1, Rc::strong_count(&a));
+#+end_src
+
+** Reference Rules(Borrowing Rules)
+1. At any given time, you can have either one mutable reference or any number of immutable references.
+2. References must always be valid.
+
+NOTE: valid means:
+1. reference's scope is no more than owner's
+2. cannot borrow immutable value as mutable
+
+* trait (the book 的小标题列的提纲非常棒)
+** Defining a Trait
+** Implementing a Trait on a Type
+** Default Implementations
+** Traits as (function) Parameters
+** Trait Bound Syntax
+** Specifying Multiple Trait Bounds with the + Syntax
+** Clearer Trait Bounds with where Clauses
+** Returning Types that Implement Traits
+** Using Trait Bounds to Conditionally Implement Methods
+
+* lifetime
+Lifetimes are another kind of generic that we’ve already been using.
+
+Rather than ensuring that a type has the behavior we want, lifetimes ensure that references are valid as long as we need them to be.
+
+every reference in Rust has a lifetime, which is the scope for which that reference is valid.
+
+the main aim of lifetimes is to prevent dangling references
+
+Struct<'a> means struct object can not outlive 'a
+
+
+
+* trait object
+dyn is a prefix of a trait object’s type.
+
+a dyn Trait reference contains two pointers.
++ One pointer goes to the data (e.g., an instance of a struct).
++ Another pointer goes to a map of method call names to function pointers (known as a virtual method table or vtable).
+
+method call may use data, so the first pointer is needed
+one vtable means no dyn trait1 + trait2 syntax (trait1,2 are not auto-traits)
+
+https://doc.rust-lang.org/reference/special-types-and-traits.html#auto-traits
+
+
+#+begin_src rust
+// following two expressions explain why trait object is DST
+// a dst's reference is a fat pointer, while sized type's reference is a wrappered pointer
+assert_eq!(4, std::mem::size_of_val(&3i32 as &'static dyn Debug));
+assert_eq!(8, std::mem::size_of_val(&3i64 as &'static dyn Debug));
+assert_eq!(
+    std::mem::size_of::<&u8>() * 2,
+    std::mem::size_of::<&'static dyn Debug>()
+);
+#+end_src
+
+https://zhuanlan.zhihu.com/p/23791817
+where Self: Sized; 可以让某个方法不进入 vtable, 或整个 trait 无法做成 trait object
+
+#+begin_src rust
+trait Foo: std::fmt::Debug
+// where
+//     Self: Sized, // the trait `Foo` cannot be made into an object
+{
+    fn foo(&self) {
+        println!("foo: {:?}", self);
+    }
+
+    // the `bar` method cannot be invoked on a trait object
+    fn bar(&self) where Self: Sized {
+        println!("bar: {:?}", self);
+    }
+
+}
+
+impl Foo for i32 {}
+
+fn main() {
+    let x = 1i32;
+    x.foo();
+    x.bar();
+    let p = &x as &dyn Foo;
+    p.foo();
+    // p.bar();
+}
+#+end_src
+
+why Clone trait is not object safe
+Rust规定，如果函数中，除了self这个参数之外，如果还在其它参数或者返回值中用到了Self类型，那这个函数就不是object safe的。这样的函数是不能使用trait object来调用的。这样的方法，是不能在虚函数表中存在的。
+
+当函数第一个参数不是self时, 静态方法
+当函数有泛型参数时, 这样的写法会让编译器特别犯难，本来x是trait object，通过它调用成员方法，是通过vtable虚函数表来进行查找并调用。现在需要被查找的函数成了泛型函数，而泛型函数在Rust中是编译阶段自动展开的，generic_fn函数实际上有许多个不同的版本，如何把这些函数都塞进虚函数表中呢，这里会有许多难以处理的问题。Rust选择的解决方案是，禁止使用trait object来调用泛型函数，泛型函数是从虚函数表中剔除掉了的
+
+
+
+https://github.com/rust-lang/rfcs/blob/master/text/0255-object-safety.md
+
+* Send, Sync
+** Send
+Types that can be transferred across thread boundaries.
+An example of a non-Send type: Rc
+
+** Sync
+Types for which it is safe to share references between threads.
+Cell, RefCell, Rc
+
+* :bounds (with + syntax)
+** T: Trait (trait bound syntax)
+** T: 'a
+T: 'a means that all lifetime parameters of T outlive 'a
+T: 'static basically means that T is a type that does not contain any non-'static references, even nested
+
+** T: Trait + 'a
+** SubTrait: SuperTrait
+** 'a: 'b (lifetime bound)
++ read as 'a outlives 'b
++ means that 'a lasts at least as long as 'b
+https://doc.rust-lang.org/reference/trait-bounds.html#lifetime-bounds
+
+** TODO Higher-ranked trait bounds
+** Trait Object Lifetime Bounds
+#+begin_src rust
+&dyn Trait + 'a
+#+end_src
+
+* dst
+
+** Sized, ?Sized
+DST: Dynamically Sized Type
+TODO:NOTE: Every trait is a dynamically sized type
+NOTE: The golden rule of dynamically sized types is that we must always put values of dynamically sized types **behind** a pointer of some kind.
+
++ &str, Box<str>, Rc<str>
++ &[u8], Box<[u8]>, Rc<[u8]>
++ &dyn Trait, Box<dyn Trait>, Rc<dyn Trait>
+https://users.rust-lang.org/t/use-case-for-box-str-and-string/8295
+
+Sized trait is automatically implemented for everything whose size is known at compile time (default)
+Rust implicitly adds a bound on Sized to every generic function
+
+#+BEGIN_SRC rust
+fn generic<T: ?Sized>(t: &T) {
+    // --snip--
+}
+// ?Sized means "T may or may not be Sized"
+// we can only use &T (rather than T), because the type need to be sized
+#+END_SRC
+
+** DST (dynamic sized type)(unsized type)
+*** rules
+e.x. str is a DST, &str is slice
++ we cannot know how long a DST is until runtime
++ we cannot create a variable of type DST
++ we cannot take an argument of type DST
+
+Golden Rule: we must always put values of dynamically sized types behind a pointer of some kind
+
+*** two common kinds
++ [T]
++ str
++ every trait is a dynamically sized type
+
+*** Sized trait (a particular)
+Rust implicitly adds a bound on Sized to every generic function
+#+begin_src rust
+fn generic(t: T) {
+    // --snip
+}
+
+fn generic<T: Sized>(t: T) {
+    // --snip
+}
+#+end_src
+
+*** ?Sized means may or may not be Sized
+#+begin_src rust
+fn generic<T: ?Sized>(t: &T) {
+    // --snip
+}
+#+end_src
+
+* lifetime
+lifetime is a special kind of generic
+
+本文大多数内容来自以下文章, 加了一些自己的理解
+https://github.com/pretzelhammer/rust-blog/blob/master/posts/common-rust-lifetime-misconceptions.md
+
+** three elision rules and borrow checker
+
+** lifetime bound 'a: 'b
+读作 'a outlive 'b, 意思是 'a 的作用域至少和 'b 一样长
+
+** 范型 T, 可以是任意类型, 包括 &T 和 &mut T; &T 和 &mut T 是正交关系
+#+begin_src rust
+trait Trait {}
+impl<T> Trait for T {} // 去掉这句可以编译通过
+impl<T> Trait for &T {} // 去掉这句不行
+impl<T> Trait for &mut T {} // 去掉这句也不行
+#+end_src
+
+** T: 'static 可以是 owned type (T: 'a 也可以是 owned type)
+
+#+begin_src rust
+fn owned_type_share_static_lifetime<T: Debug + 'static>(t: T) {
+    dbg!(t);
+}
+fn main() {
+    let a = String::from("Just a simple owned type");
+    owned_type_share_static_lifetime(a);
+    std::mem::drop(a);
+    println!("you can do anything, after");
+}
+#+end_src
+
+** 返回一个新的 lifetime 的意义
+最开始还是挺想不通返回一个新的 lifetime (下面第一段代码) 会有什么意义, 给出例子 (第二段代码) 如下
+#+begin_src rust
+fn get_str<'a>() -> &'a str; // generic version
+fn overlap<'a>(s: &str, t: &str) -> &'a str;
+#+end_src
+
+#+begin_src rust
+struct ByteIter<'a> {
+    remainder: &'a [u8],
+}
+
+impl<'a> ByteIter<'a> {
+    fn next(&mut self) -> Option<&'a u8> {
+        if self.remainder.is_empty() {
+            None
+        } else {
+            let byte = &self.remainder[0];
+            self.remainder = &self.remainder[1..];
+            Some(byte)
+        }
+    }
+}
+
+fn main() {
+    let mut bytes = ByteIter { remainder: b"1123" };
+    let byte_1 = bytes.next();
+    let byte_2 = bytes.next();
+    std::mem::drop(bytes); // we can even drop the iterator now!
+    if byte_1 == byte_2 {
+        println!("do something");
+    }
+}
+#+end_src
+
+** lifetime 不要乱标
+#+begin_src rust
+#[derive(Debug)]
+struct NumRef<'a>(&'a i32);
+
+impl<'a> NumRef<'a> {
+    // 这里标了 'a 就是说这个 method 会 mutably borrow self 整个 self 的 lifetime
+    // 也就是这个 struct 一旦调用了这个函数就不能干别的事了
+    // 这通常不是我们希望看到的, 去掉就好了
+    // 或者也可以用别的 lifttime 符号 (其实省略规则也是这样实现的)
+    fn some_method(&'a mut self) {}
+}
+
+fn main() {
+    let mut num_ref = NumRef(&5);
+    num_ref.some_method();
+    num_ref.some_method();
+}
+#+end_src
+
+** TODO 之后看不太懂了, 以后再说
+
+* cookbook
